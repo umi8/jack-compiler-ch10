@@ -1,0 +1,30 @@
+name: ci
+
+on: push
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - name: Build
+        run: cargo build --verbose
+      - name: Format check
+        run: cargo fmt --all --check
+      - name: Static analysis (also fail in case of warnings)
+        run: cargo clippy -- --deny warnings
+      - name: Run tests
+        run: cargo test --verbose

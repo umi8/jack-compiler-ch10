@@ -9,8 +9,8 @@ use clap::Parser;
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
 struct Args {
-    /// Sets a file path to be compiled
-    #[arg(value_name = "PATH")]
+    /// Sets a source to be compiled. The source is a jack file or directory.
+    #[arg(value_name = "SOURCE")]
     path: PathBuf,
 }
 

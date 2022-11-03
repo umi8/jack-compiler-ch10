@@ -19,7 +19,7 @@ impl JackTokenizer {
     }
 
     pub fn has_more_tokens(&mut self) -> Result<bool> {
-        // self.current_line.skip_whitespace();
+        self.current_line.skip_whitespace();
         if self.current_line.has_next() {
             return Ok(true);
         }
@@ -29,7 +29,7 @@ impl JackTokenizer {
             return match self.reader.read_line(&mut buf) {
                 Ok(0) => Ok(false),
                 Ok(_) => {
-                    self.current_line = Line::new(buf);
+                    self.current_line = Line::new(buf.trim().to_string());
                     if !self.current_line.has_next() {
                         continue;
                     } else {
@@ -78,12 +78,16 @@ impl Line {
     }
 
     fn skip_whitespace(&mut self) -> () {
-        if self.max_len == 0 {
+        if !self.has_next() {
             return;
         }
         let mut ch = self.peek();
         while ch.is_whitespace() {
-            ch = self.next();
+            self.next();
+            if !self.has_next() {
+                break;
+            }
+            ch = self.peek();
         }
     }
 }

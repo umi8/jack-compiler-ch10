@@ -42,7 +42,16 @@ impl JackTokenizer {
     }
 
     pub fn advance(&mut self) -> Result<()> {
-        println!("{}", self.current_line.next());
+        let mut ch = self.current_line.peek();
+        if ch == '/' {
+            self.current_line.next();
+            ch = self.current_line.peek();
+            if ch == '/' {
+                self.current_line.move_cursor_to_end_of_line();
+            }
+        } else {
+            println!("{}", self.current_line.next());
+        }
         Ok(())
     }
 }
@@ -64,12 +73,18 @@ impl Line {
     }
 
     fn next(&mut self) -> char {
+        if !self.has_next() {
+            return '\0';
+        }
         let index = self.current_index;
         self.current_index += 1;
         self.line.chars().collect::<Vec<char>>()[index]
     }
 
     fn peek(&mut self) -> char {
+        if !self.has_next() {
+            return '\0';
+        }
         self.line.chars().collect::<Vec<char>>()[self.current_index]
     }
 
@@ -89,5 +104,9 @@ impl Line {
             }
             ch = self.peek();
         }
+    }
+
+    fn move_cursor_to_end_of_line(&mut self) -> () {
+        self.current_index = self.max_len;
     }
 }

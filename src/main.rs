@@ -1,9 +1,11 @@
-use std::fs::File;
-use std::io::{BufRead, BufReader};
 use std::path::PathBuf;
 
 use anyhow::Result;
 use clap::Parser;
+
+use crate::jack_tokenizer::JackTokenizer;
+
+mod jack_tokenizer;
 
 /// Jack Compiler
 #[derive(Parser)]
@@ -16,11 +18,10 @@ struct Args {
 
 fn main() -> Result<()> {
     let args = Args::parse();
-    let file = File::open(args.path.as_path())?;
-    let reader = BufReader::new(file);
+    let mut jack_tokenizer = JackTokenizer::new(args.path.as_path())?;
 
-    for line in reader.lines() {
-        println!("{}", line?);
+    while jack_tokenizer.has_more_tokens()? {
+        jack_tokenizer.advance()?;
     }
 
     Ok(())

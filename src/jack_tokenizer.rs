@@ -1,65 +1,77 @@
+use std::fs::File;
+use std::io::{BufRead, BufReader};
+use std::path::Path;
+
 use anyhow::Result;
 
-pub struct JackTokenizer {}
+pub struct JackTokenizer {
+    reader: BufReader<File>,
+    current_line: Line,
+}
 
 impl JackTokenizer {
-    pub fn has_more_tokens() -> Result<bool> {
-        Ok(false)
+    pub fn new(path: &Path) -> Result<Self> {
+        let file = File::open(path)?;
+        let reader = BufReader::new(file);
+        Ok(JackTokenizer {
+            reader,
+            current_line: Line::new(String::new()),
+        })
     }
 
-    pub fn token_type() -> Result<TokenType> {
-        Ok(TokenType::Keyword)
+    pub fn has_more_tokens(&mut self) -> Result<bool> {
+        if self.current_line.has_next() {
+            return Ok(true);
+        }
+
+        loop {
+            let mut buf = String::new();
+            return match self.reader.read_line(&mut buf) {
+                Ok(0) => Ok(false),
+                Ok(_) => {
+                    self.current_line = Line::new(buf);
+                    if !self.current_line.has_next() {
+                        continue;
+                    } else {
+                        return Ok(true);
+                    }
+                }
+                Err(_) => Ok(false),
+            };
+        }
     }
 
-    pub fn key_word() -> Result<KeyWord> {
-        Ok(KeyWord::Class)
-    }
-
-    pub fn symbol() -> Result<char> {
-        Ok('{')
-    }
-
-    pub fn identifier() -> Result<String> {
-        Ok(String::new())
-    }
-
-    pub fn int_val() -> Result<usize> {
-        Ok(0)
-    }
-
-    pub fn string_val() -> Result<String> {
-        Ok(String::new())
+    pub fn advance(&mut self) -> Result<()> {
+        if self.current_line.has_next() {
+            println!("{}", self.current_line.next());
+        }
+        Ok(())
     }
 }
 
-enum TokenType {
-    Keyword,
-    Symbol,
-    Identifier,
-    IntConst,
-    StringConst,
+struct Line {
+    line: String,
+    current_index: usize,
+    max_len: usize,
 }
 
-enum KeyWord {
-    Class,
-    Method,
-    Function,
-    Constructor,
-    Int,
-    Boolean,
-    Char,
-    Void,
-    Var,
-    Static,
-    Field,
-    Let,
-    Do,
-    If,
-    Else,
-    While,
-    Return,
-    True,
-    False,
-    Null,
-    This,
+impl Line {
+    fn new(line: String) -> Self {
+        let len = line.len();
+        Line {
+            line,
+            current_index: 0,
+            max_len: len,
+        }
+    }
+
+    fn next(&mut self) -> char {
+        let index = self.current_index;
+        self.current_index += 1;
+        self.line.chars().collect::<Vec<char>>()[index]
+    }
+
+    fn has_next(&mut self) -> bool {
+        self.current_index < self.max_len
+    }
 }

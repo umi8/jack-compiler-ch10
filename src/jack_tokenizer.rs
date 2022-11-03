@@ -19,6 +19,7 @@ impl JackTokenizer {
     }
 
     pub fn has_more_tokens(&mut self) -> Result<bool> {
+        // self.current_line.skip_whitespace();
         if self.current_line.has_next() {
             return Ok(true);
         }
@@ -41,9 +42,7 @@ impl JackTokenizer {
     }
 
     pub fn advance(&mut self) -> Result<()> {
-        if self.current_line.has_next() {
-            println!("{}", self.current_line.next());
-        }
+        println!("{}", self.current_line.next());
         Ok(())
     }
 }
@@ -70,7 +69,21 @@ impl Line {
         self.line.chars().collect::<Vec<char>>()[index]
     }
 
+    fn peek(&mut self) -> char {
+        self.line.chars().collect::<Vec<char>>()[self.current_index]
+    }
+
     fn has_next(&mut self) -> bool {
         self.current_index < self.max_len
+    }
+
+    fn skip_whitespace(&mut self) -> () {
+        if self.max_len == 0 {
+            return;
+        }
+        let mut ch = self.peek();
+        while ch.is_whitespace() {
+            ch = self.next();
+        }
     }
 }

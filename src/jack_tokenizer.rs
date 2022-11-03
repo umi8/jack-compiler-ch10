@@ -12,9 +12,8 @@ pub struct JackTokenizer {
 impl JackTokenizer {
     pub fn new(path: &Path) -> Result<Self> {
         let file = File::open(path)?;
-        let reader = BufReader::new(file);
         Ok(JackTokenizer {
-            reader,
+            reader: BufReader::new(file),
             current_line: Line::new(String::new()),
         })
     }

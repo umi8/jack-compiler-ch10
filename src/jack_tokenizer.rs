@@ -42,34 +42,38 @@ impl JackTokenizer {
     }
 
     pub fn advance(&mut self) -> Result<()> {
-        let mut ch = self.current_line.peek();
+        let ch = self.current_line.peek();
         if ch == '/' {
-            self.current_line.next();
-            ch = self.current_line.peek();
-            if ch == '/' {
-                self.current_line.move_cursor_to_end_of_line();
-            } else if ch == '*' {
-                self.current_line.next();
-                let mut is_end = false;
-                while self.current_line.has_next() {
-                    ch = self.current_line.peek();
-                    if ch != '/' && is_end {
-                        is_end = false;
-                    }
-                    if ch == '*' {
-                        is_end = true;
-                    }
-                    if ch == '/' && is_end {
-                        self.current_line.next();
-                        break;
-                    }
-                    self.current_line.next();
-                }
-            }
+            self.ignore_comments();
         } else {
             println!("{}", self.current_line.next());
         }
         Ok(())
+    }
+
+    fn ignore_comments(&mut self) -> () {
+        self.current_line.next();
+        let mut ch = self.current_line.peek();
+        if ch == '/' {
+            self.current_line.move_cursor_to_end_of_line();
+        } else if ch == '*' {
+            self.current_line.next();
+            let mut is_end = false;
+            while self.current_line.has_next() {
+                ch = self.current_line.peek();
+                if ch != '/' && is_end {
+                    is_end = false;
+                }
+                if ch == '*' {
+                    is_end = true;
+                }
+                if ch == '/' && is_end {
+                    self.current_line.next();
+                    break;
+                }
+                self.current_line.next();
+            }
+        }
     }
 }
 

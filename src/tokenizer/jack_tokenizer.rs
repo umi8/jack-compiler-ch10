@@ -176,7 +176,7 @@ const SYMBOLS: [char; 19] = [
 mod tests {
     use std::io::BufReader;
 
-    use crate::tokenizer::jack_tokenizer::{Token, TokenType};
+    use crate::tokenizer::jack_tokenizer::{TokenType};
     use crate::tokenizer::line::Line;
     use crate::JackTokenizer;
 

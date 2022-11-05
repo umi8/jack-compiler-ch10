@@ -3,9 +3,9 @@ use std::path::PathBuf;
 use anyhow::Result;
 use clap::Parser;
 
-use crate::jack_tokenizer::JackTokenizer;
+use tokenizer::jack_tokenizer::JackTokenizer;
 
-mod jack_tokenizer;
+mod tokenizer;
 
 /// Jack Compiler
 #[derive(Parser)]

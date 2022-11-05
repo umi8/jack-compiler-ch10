@@ -134,7 +134,7 @@ impl Line {
 
 #[cfg(test)]
 mod line_tests {
-    use crate::jack_tokenizer::Line;
+    use crate::tokenizer::jack_tokenizer::Line;
 
     #[test]
     fn next_return_current_char_and_increment_index_if_has_next() {

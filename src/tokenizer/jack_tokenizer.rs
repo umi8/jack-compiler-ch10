@@ -2,8 +2,9 @@ use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::path::Path;
 
-use crate::tokenizer::line::Line;
 use anyhow::Result;
+
+use crate::tokenizer::line::Line;
 
 pub struct JackTokenizer {
     reader: BufReader<File>,
@@ -75,5 +76,48 @@ impl JackTokenizer {
                 self.current_line.next();
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::io::BufReader;
+
+    use crate::tokenizer::line::Line;
+    use crate::JackTokenizer;
+
+    #[test]
+    fn can_ignore_line_if_double_slash_comment() {
+        let mut tokenizer = JackTokenizer {
+            reader: BufReader::new(tempfile::tempfile().unwrap()),
+            current_line: Line::new("// comments".to_string()),
+        };
+
+        tokenizer.ignore_comments();
+        assert!(!tokenizer.current_line.has_next());
+    }
+
+    #[test]
+    fn can_ignore_until_end_of_comment() {
+        let mut tokenizer = JackTokenizer {
+            reader: BufReader::new(tempfile::tempfile().unwrap()),
+            current_line: Line::new("/* comments */ code;".to_string()),
+        };
+
+        tokenizer.ignore_comments();
+        assert!(tokenizer.current_line.has_next());
+        assert_eq!(' ', tokenizer.current_line.peek());
+    }
+
+    #[test]
+    fn can_ignore_until_end_of_comment_if_api_doc_comment() {
+        let mut tokenizer = JackTokenizer {
+            reader: BufReader::new(tempfile::tempfile().unwrap()),
+            current_line: Line::new("/** api doc comments */ code;".to_string()),
+        };
+
+        tokenizer.ignore_comments();
+        assert!(tokenizer.current_line.has_next());
+        assert_eq!(' ', tokenizer.current_line.peek());
     }
 }

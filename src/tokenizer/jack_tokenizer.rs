@@ -1,3 +1,5 @@
+use std::fmt;
+use std::fmt::Formatter;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::path::Path;
@@ -71,6 +73,9 @@ impl JackTokenizer {
         let ch = self.current_line.peek();
         if ch == '/' {
             self.ignore_comments();
+            if self.has_more_tokens()? {
+                self.advance()?;
+            }
         } else if SYMBOLS.contains(&ch) {
             self.token = Token {
                 token_type: TokenType::Symbol,
@@ -163,6 +168,7 @@ impl JackTokenizer {
     }
 }
 
+#[derive(Debug)]
 pub enum KeyWord {
     Class,
     Method,
@@ -185,6 +191,12 @@ pub enum KeyWord {
     False,
     Null,
     This,
+}
+
+impl fmt::Display for KeyWord {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "{:?}", self)
+    }
 }
 
 impl KeyWord {
@@ -211,7 +223,7 @@ impl KeyWord {
             "else" => Ok(KeyWord::Else),
             "while" => Ok(KeyWord::While),
             "return" => Ok(KeyWord::Return),
-            _ => bail!(Error::msg("Illegal Argument Error")),
+            _ => bail!(Error::msg(format!("Illegal Argument Error: {}", key_word))),
         }
     }
 }
@@ -248,9 +260,8 @@ const SYMBOLS: [char; 19] = [
 mod tests {
     use std::io::BufReader;
 
-    use crate::tokenizer::jack_tokenizer::TokenType;
+    use crate::tokenizer::jack_tokenizer::{JackTokenizer, TokenType};
     use crate::tokenizer::line::Line;
-    use crate::JackTokenizer;
 
     #[test]
     fn advance_if_keyword() {

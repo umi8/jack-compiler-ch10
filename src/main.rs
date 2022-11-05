@@ -24,7 +24,12 @@ fn main() -> Result<()> {
     while jack_tokenizer.has_more_tokens()? {
         jack_tokenizer.advance()?;
         match jack_tokenizer.token_type() {
-            TokenType::Keyword => {}
+            TokenType::Keyword => {
+                println!(
+                    "<keyword> {} </keyword>",
+                    jack_tokenizer.key_word()?.to_string().to_lowercase()
+                )
+            }
             TokenType::Symbol => {
                 println!("<symbol> {} </symbol>", jack_tokenizer.symbol())
             }

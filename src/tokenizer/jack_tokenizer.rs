@@ -81,8 +81,6 @@ impl JackTokenizer {
             self.analyze_integer_constant();
         } else if ch.is_alphabetic() {
             self.analyze_alphabetic();
-        } else {
-            println!("{}", ch)
         }
         Ok(())
     }

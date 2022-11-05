@@ -9,6 +9,30 @@ use crate::tokenizer::line::Line;
 pub struct JackTokenizer {
     reader: BufReader<File>,
     current_line: Line,
+    token: Token,
+}
+
+#[derive(Debug, PartialEq)]
+enum TokenType {
+    Keyword,
+    Symbol,
+    Identifier,
+    IntConst,
+    StringConst,
+}
+
+struct Token {
+    token_type: TokenType,
+    value: String,
+}
+
+impl Default for Token {
+    fn default() -> Self {
+        Self {
+            token_type: TokenType::Keyword,
+            value: "".to_string(),
+        }
+    }
 }
 
 impl JackTokenizer {
@@ -17,6 +41,7 @@ impl JackTokenizer {
         Ok(JackTokenizer {
             reader: BufReader::new(file),
             current_line: Line::new(String::new()),
+            token: Default::default(),
         })
     }
 
@@ -47,6 +72,11 @@ impl JackTokenizer {
         let ch = self.current_line.peek();
         if ch == '/' {
             self.ignore_comments();
+        } else if SYMBOLS.contains(&ch) {
+            self.token = Token {
+                token_type: TokenType::Symbol,
+                value: self.current_line.next().to_string(),
+            }
         } else {
             println!("{}", self.current_line.next());
         }
@@ -79,18 +109,37 @@ impl JackTokenizer {
     }
 }
 
+const SYMBOLS: [char; 19] = [
+    '{', '}', '(', ')', '[', ']', '.', ',', ';', '+', '-', '*', '/', '&', '|', '<', '>', '=', '~',
+];
+
 #[cfg(test)]
 mod tests {
     use std::io::BufReader;
 
+    use crate::tokenizer::jack_tokenizer::{Token, TokenType};
     use crate::tokenizer::line::Line;
     use crate::JackTokenizer;
+
+    #[test]
+    fn advance_if_symbol() {
+        let mut tokenizer = JackTokenizer {
+            reader: BufReader::new(tempfile::tempfile().unwrap()),
+            current_line: Line::new("{ code; }".to_string()),
+            token: Default::default(),
+        };
+
+        tokenizer.advance().unwrap();
+        assert_eq!("{", tokenizer.token.value);
+        assert_eq!(TokenType::Symbol, tokenizer.token.token_type);
+    }
 
     #[test]
     fn can_ignore_line_if_double_slash_comment() {
         let mut tokenizer = JackTokenizer {
             reader: BufReader::new(tempfile::tempfile().unwrap()),
             current_line: Line::new("// comments".to_string()),
+            token: Default::default(),
         };
 
         tokenizer.ignore_comments();
@@ -102,6 +151,7 @@ mod tests {
         let mut tokenizer = JackTokenizer {
             reader: BufReader::new(tempfile::tempfile().unwrap()),
             current_line: Line::new("/* comments */ code;".to_string()),
+            token: Default::default(),
         };
 
         tokenizer.ignore_comments();
@@ -114,6 +164,7 @@ mod tests {
         let mut tokenizer = JackTokenizer {
             reader: BufReader::new(tempfile::tempfile().unwrap()),
             current_line: Line::new("/** api doc comments */ code;".to_string()),
+            token: Default::default(),
         };
 
         tokenizer.ignore_comments();

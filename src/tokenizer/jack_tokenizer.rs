@@ -14,7 +14,7 @@ pub struct JackTokenizer {
     token: Token,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum TokenType {
     Keyword,
     Symbol,
@@ -94,7 +94,7 @@ impl JackTokenizer {
     }
 
     pub fn key_word(&self) -> Result<KeyWord> {
-        Ok(KeyWord::from(self.token.value.as_str())?)
+        KeyWord::from(self.token.value.as_str())
     }
 
     pub fn symbol(&self) -> char {

@@ -2,7 +2,7 @@ use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::path::Path;
 
-use anyhow::Result;
+use anyhow::{bail, Error, Result};
 
 use crate::tokenizer::line::Line;
 
@@ -13,12 +13,11 @@ pub struct JackTokenizer {
 }
 
 #[derive(Debug, PartialEq)]
-enum TokenType {
+pub enum TokenType {
     Keyword,
     Symbol,
     Identifier,
     IntConst,
-    StringConst,
 }
 
 struct Token {
@@ -85,6 +84,26 @@ impl JackTokenizer {
         Ok(())
     }
 
+    pub fn token_type(&self) -> &TokenType {
+        &self.token.token_type
+    }
+
+    pub fn key_word(&self) -> Result<KeyWord> {
+        Ok(KeyWord::from(self.token.value.as_str())?)
+    }
+
+    pub fn symbol(&self) -> char {
+        self.token.value.parse().unwrap()
+    }
+
+    pub fn identifier(&self) -> &String {
+        &self.token.value
+    }
+
+    pub fn int_val(&self) -> Result<usize> {
+        Ok(self.token.value.parse::<usize>()?)
+    }
+
     fn ignore_comments(&mut self) {
         self.current_line.next();
         let mut ch = self.current_line.peek();
@@ -144,6 +163,59 @@ impl JackTokenizer {
     }
 }
 
+pub enum KeyWord {
+    Class,
+    Method,
+    Function,
+    Constructor,
+    Int,
+    Boolean,
+    Char,
+    Void,
+    Var,
+    Static,
+    Field,
+    Let,
+    Do,
+    If,
+    Else,
+    While,
+    Return,
+    True,
+    False,
+    Null,
+    This,
+}
+
+impl KeyWord {
+    fn from(key_word: &str) -> Result<KeyWord> {
+        match key_word {
+            "class" => Ok(KeyWord::Class),
+            "constructor" => Ok(KeyWord::Constructor),
+            "function" => Ok(KeyWord::Function),
+            "method" => Ok(KeyWord::Method),
+            "field" => Ok(KeyWord::Field),
+            "static" => Ok(KeyWord::Static),
+            "var" => Ok(KeyWord::Var),
+            "int" => Ok(KeyWord::Int),
+            "char" => Ok(KeyWord::Char),
+            "boolean" => Ok(KeyWord::Boolean),
+            "void" => Ok(KeyWord::Void),
+            "true" => Ok(KeyWord::True),
+            "false" => Ok(KeyWord::False),
+            "null" => Ok(KeyWord::Null),
+            "this" => Ok(KeyWord::This),
+            "let" => Ok(KeyWord::Let),
+            "do" => Ok(KeyWord::Do),
+            "if" => Ok(KeyWord::If),
+            "else" => Ok(KeyWord::Else),
+            "while" => Ok(KeyWord::While),
+            "return" => Ok(KeyWord::Return),
+            _ => bail!(Error::msg("Illegal Argument Error")),
+        }
+    }
+}
+
 const KEYWORDS: [&str; 21] = [
     "class",
     "constructor",
@@ -176,7 +248,7 @@ const SYMBOLS: [char; 19] = [
 mod tests {
     use std::io::BufReader;
 
-    use crate::tokenizer::jack_tokenizer::{TokenType};
+    use crate::tokenizer::jack_tokenizer::TokenType;
     use crate::tokenizer::line::Line;
     use crate::JackTokenizer;
 

@@ -3,6 +3,7 @@ use std::path::PathBuf;
 use anyhow::Result;
 use clap::Parser;
 
+use crate::tokenizer::jack_tokenizer::TokenType;
 use tokenizer::jack_tokenizer::JackTokenizer;
 
 mod tokenizer;
@@ -22,6 +23,21 @@ fn main() -> Result<()> {
 
     while jack_tokenizer.has_more_tokens()? {
         jack_tokenizer.advance()?;
+        match jack_tokenizer.token_type() {
+            TokenType::Keyword => {}
+            TokenType::Symbol => {
+                println!("<symbol> {} </symbol>", jack_tokenizer.symbol())
+            }
+            TokenType::Identifier => {
+                println!("<identifier> {} </identifier>", jack_tokenizer.identifier())
+            }
+            TokenType::IntConst => {
+                println!(
+                    "<integerConstant> {} </integerConstant>",
+                    jack_tokenizer.int_val()?
+                )
+            }
+        }
     }
 
     Ok(())

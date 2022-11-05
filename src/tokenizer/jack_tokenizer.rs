@@ -40,7 +40,7 @@ impl JackTokenizer {
         let file = File::open(path)?;
         Ok(JackTokenizer {
             reader: BufReader::new(file),
-            current_line: Line::new(String::new()),
+            current_line: Default::default(),
             token: Default::default(),
         })
     }

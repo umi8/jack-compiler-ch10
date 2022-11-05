@@ -4,6 +4,16 @@ pub(crate) struct Line {
     max_len: usize,
 }
 
+impl Default for Line {
+    fn default() -> Self {
+        Self {
+            line: "".to_string(),
+            current_index: 0,
+            max_len: 0,
+        }
+    }
+}
+
 impl Line {
     pub(crate) fn new(line: String) -> Self {
         let len = line.len();

@@ -77,6 +77,8 @@ impl JackTokenizer {
                 token_type: TokenType::Symbol,
                 value: self.current_line.next().to_string(),
             }
+        } else if ch.is_numeric() {
+            self.analyze_integer_constant();
         } else {
             println!("{}", self.current_line.next());
         }
@@ -107,6 +109,19 @@ impl JackTokenizer {
             }
         }
     }
+
+    fn analyze_integer_constant(&mut self) -> () {
+        let mut ch = self.current_line.peek();
+        let mut value = String::new();
+        while self.current_line.has_next() && ch.is_numeric() {
+            value.push(self.current_line.next());
+            ch = self.current_line.peek();
+        }
+        self.token = Token {
+            token_type: TokenType::IntConst,
+            value,
+        }
+    }
 }
 
 const SYMBOLS: [char; 19] = [
@@ -132,6 +147,19 @@ mod tests {
         tokenizer.advance().unwrap();
         assert_eq!("{", tokenizer.token.value);
         assert_eq!(TokenType::Symbol, tokenizer.token.token_type);
+    }
+
+    #[test]
+    fn advance_if_numeric() {
+        let mut tokenizer = JackTokenizer {
+            reader: BufReader::new(tempfile::tempfile().unwrap()),
+            current_line: Line::new("123 + 24".to_string()),
+            token: Default::default(),
+        };
+
+        tokenizer.advance().unwrap();
+        assert_eq!("123", tokenizer.token.value);
+        assert_eq!(TokenType::IntConst, tokenizer.token.token_type);
     }
 
     #[test]

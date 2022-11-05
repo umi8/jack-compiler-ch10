@@ -79,8 +79,10 @@ impl JackTokenizer {
             }
         } else if ch.is_numeric() {
             self.analyze_integer_constant();
+        } else if ch.is_alphabetic() {
+            self.analyze_alphabetic();
         } else {
-            println!("{}", self.current_line.next());
+            println!("{}", ch)
         }
         Ok(())
     }
@@ -110,6 +112,26 @@ impl JackTokenizer {
         }
     }
 
+    fn analyze_alphabetic(&mut self) -> () {
+        let mut ch = self.current_line.peek();
+        let mut value = String::new();
+        while self.current_line.has_next() && ch.is_alphabetic() {
+            value.push(self.current_line.next());
+            if KEYWORDS.contains(&value.as_str()) {
+                self.token = Token {
+                    token_type: TokenType::Keyword,
+                    value,
+                };
+                return;
+            }
+            ch = self.current_line.peek();
+        }
+        self.token = Token {
+            token_type: TokenType::Identifier,
+            value,
+        }
+    }
+
     fn analyze_integer_constant(&mut self) -> () {
         let mut ch = self.current_line.peek();
         let mut value = String::new();
@@ -124,6 +146,30 @@ impl JackTokenizer {
     }
 }
 
+const KEYWORDS: [&str; 21] = [
+    "class",
+    "constructor",
+    "function",
+    "method",
+    "field",
+    "static",
+    "var",
+    "int",
+    "char",
+    "boolean",
+    "void",
+    "true",
+    "false",
+    "null",
+    "this",
+    "let",
+    "do",
+    "if",
+    "else",
+    "while",
+    "return",
+];
+
 const SYMBOLS: [char; 19] = [
     '{', '}', '(', ')', '[', ']', '.', ',', ';', '+', '-', '*', '/', '&', '|', '<', '>', '=', '~',
 ];
@@ -135,6 +181,32 @@ mod tests {
     use crate::tokenizer::jack_tokenizer::{Token, TokenType};
     use crate::tokenizer::line::Line;
     use crate::JackTokenizer;
+
+    #[test]
+    fn advance_if_keyword() {
+        let mut tokenizer = JackTokenizer {
+            reader: BufReader::new(tempfile::tempfile().unwrap()),
+            current_line: Line::new("class Square {".to_string()),
+            token: Default::default(),
+        };
+
+        tokenizer.advance().unwrap();
+        assert_eq!("class", tokenizer.token.value);
+        assert_eq!(TokenType::Keyword, tokenizer.token.token_type);
+    }
+
+    #[test]
+    fn advance_if_identifier() {
+        let mut tokenizer = JackTokenizer {
+            reader: BufReader::new(tempfile::tempfile().unwrap()),
+            current_line: Line::new("Square {".to_string()),
+            token: Default::default(),
+        };
+
+        tokenizer.advance().unwrap();
+        assert_eq!("Square", tokenizer.token.value);
+        assert_eq!(TokenType::Identifier, tokenizer.token.token_type);
+    }
 
     #[test]
     fn advance_if_symbol() {

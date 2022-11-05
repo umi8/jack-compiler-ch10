@@ -131,3 +131,64 @@ impl Line {
         self.current_index = self.max_len;
     }
 }
+
+#[cfg(test)]
+mod line_tests {
+    use crate::jack_tokenizer::Line;
+
+    #[test]
+    fn next_return_current_char_and_increment_index_if_has_next() {
+        let mut line = Line {
+            line: "apple".to_string(),
+            current_index: 0,
+            max_len: 5,
+        };
+        assert_eq!('a', line.next());
+        assert_eq!(1, line.current_index);
+    }
+
+    #[test]
+    fn next_return_empty_char_if_not_have_next() {
+        let mut line = Line {
+            line: "apple".to_string(),
+            current_index: 5,
+            max_len: 5,
+        };
+        assert_eq!('\0', line.next());
+        assert_eq!(5, line.current_index);
+    }
+
+    #[test]
+    fn peek_return_current_char_and_increment_index_if_has_next() {
+        let mut line = Line {
+            line: "apple".to_string(),
+            current_index: 0,
+            max_len: 5,
+        };
+        assert_eq!('a', line.peek());
+        assert_eq!(0, line.current_index);
+    }
+
+    #[test]
+    fn peek_return_empty_char_if_not_have_next() {
+        let mut line = Line {
+            line: "apple".to_string(),
+            current_index: 5,
+            max_len: 5,
+        };
+        assert_eq!('\0', line.peek());
+        assert_eq!(5, line.current_index);
+    }
+
+    #[test]
+    fn can_skip_whitespace() {
+        let mut line = Line {
+            line: "space    Line".to_string(),
+            current_index: 5,
+            max_len: 13,
+        };
+        line.skip_whitespace();
+        assert_eq!(9, line.current_index);
+        assert_eq!('L', line.peek());
+    }
+}

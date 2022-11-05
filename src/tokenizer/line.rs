@@ -44,7 +44,7 @@ impl Line {
         self.current_index < self.max_len
     }
 
-    pub(crate) fn skip_whitespace(&mut self) -> () {
+    pub(crate) fn skip_whitespace(&mut self) {
         if !self.has_next() {
             return;
         }
@@ -58,7 +58,7 @@ impl Line {
         }
     }
 
-    pub(crate) fn move_cursor_to_end_of_line(&mut self) -> () {
+    pub(crate) fn move_cursor_to_end_of_line(&mut self) {
         self.current_index = self.max_len;
     }
 }

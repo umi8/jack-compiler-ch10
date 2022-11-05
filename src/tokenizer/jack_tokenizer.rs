@@ -85,7 +85,7 @@ impl JackTokenizer {
         Ok(())
     }
 
-    fn ignore_comments(&mut self) -> () {
+    fn ignore_comments(&mut self) {
         self.current_line.next();
         let mut ch = self.current_line.peek();
         if ch == '/' {
@@ -110,7 +110,7 @@ impl JackTokenizer {
         }
     }
 
-    fn analyze_alphabetic(&mut self) -> () {
+    fn analyze_alphabetic(&mut self) {
         let mut ch = self.current_line.peek();
         let mut value = String::new();
         while self.current_line.has_next() && ch.is_alphabetic() {
@@ -130,7 +130,7 @@ impl JackTokenizer {
         }
     }
 
-    fn analyze_integer_constant(&mut self) -> () {
+    fn analyze_integer_constant(&mut self) {
         let mut ch = self.current_line.peek();
         let mut value = String::new();
         while self.current_line.has_next() && ch.is_numeric() {

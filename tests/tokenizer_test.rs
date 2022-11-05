@@ -6,10 +6,28 @@ use std::string::String;
 use jack_compiler::tokenizer::jack_tokenizer::{JackTokenizer, TokenType};
 
 #[test]
-fn square() {
+fn square_main() {
+    let expected_file_path = Path::new("tests/resources/Square/MainT.xml");
+    let src_path = Path::new("tests/resources/Square/Main.jack");
+    test_diff(expected_file_path, src_path);
+}
+
+#[test]
+fn square_square() {
     let expected_file_path = Path::new("tests/resources/Square/SquareT.xml");
-    let expected = read_to_string(expected_file_path).unwrap();
     let src_path = Path::new("tests/resources/Square/Square.jack");
+    test_diff(expected_file_path, src_path);
+}
+
+#[test]
+fn square_square_game() {
+    let expected_file_path = Path::new("tests/resources/Square/SquareGameT.xml");
+    let src_path = Path::new("tests/resources/Square/SquareGame.jack");
+    test_diff(expected_file_path, src_path);
+}
+
+fn test_diff(expected_file_path: &Path, src_path: &Path) {
+    let expected = read_to_string(expected_file_path).unwrap();
     let mut jack_tokenizer = JackTokenizer::new(src_path).unwrap();
 
     let mut actual = String::new();

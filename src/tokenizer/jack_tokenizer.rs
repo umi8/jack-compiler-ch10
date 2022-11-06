@@ -73,9 +73,17 @@ impl JackTokenizer {
     pub fn advance(&mut self) -> Result<()> {
         let ch = self.current_line.peek();
         if ch == '/' {
-            self.ignore_comments()?;
-            if self.has_more_tokens()? {
-                self.advance()?;
+            self.current_line.next();
+            if self.current_line.peek() == '/' || self.current_line.peek() == '*' {
+                self.ignore_comments()?;
+                if self.has_more_tokens()? {
+                    self.advance()?;
+                }
+            } else {
+                self.token = Token {
+                    token_type: TokenType::Symbol,
+                    value: String::from("/"),
+                };
             }
         } else if ch == '\"' {
             self.current_line.next();
@@ -128,7 +136,6 @@ impl JackTokenizer {
     }
 
     fn ignore_comments(&mut self) -> Result<()> {
-        self.current_line.next();
         let mut ch = self.current_line.peek();
 
         if ch == '/' {
@@ -158,6 +165,7 @@ impl JackTokenizer {
 
                 self.current_line.next();
                 if self.current_line.peek() == '/' {
+                    self.current_line.next();
                     break;
                 }
             }
@@ -425,7 +433,7 @@ mod tests {
         tokenizer.current_line.next();
         tokenizer.ignore_comments().unwrap();
 
-        assert!(tokenizer.current_line.has_next());
-        assert_eq!('/', tokenizer.current_line.peek());
+        assert!(!tokenizer.current_line.has_next());
+        assert_eq!('\0', tokenizer.current_line.peek());
     }
 }

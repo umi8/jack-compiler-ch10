@@ -72,7 +72,7 @@ impl JackTokenizer {
     pub fn advance(&mut self) -> Result<()> {
         let ch = self.current_line.peek();
         if ch == '/' {
-            self.ignore_comments();
+            self.ignore_comments()?;
             if self.has_more_tokens()? {
                 self.advance()?;
             }
@@ -109,29 +109,42 @@ impl JackTokenizer {
         Ok(self.token.value.parse::<usize>()?)
     }
 
-    fn ignore_comments(&mut self) {
+    fn ignore_comments(&mut self) -> Result<()> {
         self.current_line.next();
         let mut ch = self.current_line.peek();
+
         if ch == '/' {
             self.current_line.move_cursor_to_end_of_line();
         } else if ch == '*' {
-            self.current_line.next();
-            let mut is_end = false;
-            while self.current_line.has_next() {
+            loop {
+                self.current_line.next();
                 ch = self.current_line.peek();
-                if ch != '/' && is_end {
-                    is_end = false;
-                }
-                if ch == '*' {
-                    is_end = true;
-                }
-                if ch == '/' && is_end {
+
+                while ch != '*' {
+                    if !self.current_line.has_next() {
+                        let mut buf = String::new();
+                        match self.reader.read_line(&mut buf) {
+                            Ok(0) => bail!(Error::msg("Format Error.")),
+                            Ok(_) => {
+                                self.current_line = Line::new(buf.trim().to_string());
+                            }
+                            Err(_) => bail!(Error::msg("Format Error.")),
+                        };
+                        ch = self.current_line.peek();
+                        continue;
+                    }
+
                     self.current_line.next();
+                    ch = self.current_line.peek();
+                }
+
+                self.current_line.next();
+                if self.current_line.peek() == '/' {
                     break;
                 }
-                self.current_line.next();
             }
         }
+        Ok(())
     }
 
     fn analyze_alphabetic(&mut self) {
@@ -258,7 +271,10 @@ const SYMBOLS: [char; 19] = [
 
 #[cfg(test)]
 mod tests {
-    use std::io::BufReader;
+    use std::io::Write;
+    use std::io::{BufRead, BufReader, Seek, SeekFrom};
+
+    use tempfile::tempfile;
 
     use crate::tokenizer::jack_tokenizer::{JackTokenizer, TokenType};
     use crate::tokenizer::line::Line;
@@ -323,7 +339,7 @@ mod tests {
             token: Default::default(),
         };
 
-        tokenizer.ignore_comments();
+        tokenizer.ignore_comments().unwrap();
         assert!(!tokenizer.current_line.has_next());
     }
 
@@ -335,21 +351,37 @@ mod tests {
             token: Default::default(),
         };
 
-        tokenizer.ignore_comments();
+        tokenizer.current_line.next();
+        tokenizer.ignore_comments().unwrap();
         assert!(tokenizer.current_line.has_next());
         assert_eq!(' ', tokenizer.current_line.peek());
     }
 
     #[test]
     fn can_ignore_until_end_of_comment_if_api_doc_comment() {
+        let mut file = tempfile().unwrap();
+        writeln!(file, "/**").unwrap();
+        writeln!(file, " * ").unwrap();
+        writeln!(file, " * multiline comments").unwrap();
+        writeln!(file, " * multiline comments").unwrap();
+        writeln!(file, " */").unwrap();
+        writeln!(file, "code;").unwrap();
+        file.seek(SeekFrom::Start(0)).unwrap();
+
+        let mut buf = String::new();
+        let mut reader = BufReader::new(file);
+        reader.read_line(&mut buf).unwrap();
+
         let mut tokenizer = JackTokenizer {
-            reader: BufReader::new(tempfile::tempfile().unwrap()),
-            current_line: Line::new("/** api doc comments */ code;".to_string()),
+            reader,
+            current_line: Line::new(buf),
             token: Default::default(),
         };
 
-        tokenizer.ignore_comments();
+        tokenizer.current_line.next();
+        tokenizer.ignore_comments().unwrap();
+
         assert!(tokenizer.current_line.has_next());
-        assert_eq!(' ', tokenizer.current_line.peek());
+        assert_eq!('/', tokenizer.current_line.peek());
     }
 }

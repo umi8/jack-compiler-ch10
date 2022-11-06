@@ -42,6 +42,12 @@ fn main() -> Result<()> {
                     jack_tokenizer.int_val()?
                 )
             }
+            TokenType::StringConst => {
+                println!(
+                    "<stringConstant> {} </stringConstant>",
+                    jack_tokenizer.string_val()
+                )
+            }
         }
     }
 

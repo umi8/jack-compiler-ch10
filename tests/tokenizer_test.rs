@@ -71,6 +71,12 @@ fn test_diff(expected_file_path: &Path, src_path: &Path) {
                 jack_tokenizer.int_val().unwrap()
             )
             .unwrap(),
+            TokenType::StringConst => writeln!(
+                actual,
+                "<stringConstant> {} </stringConstant>",
+                jack_tokenizer.string_val()
+            )
+            .unwrap(),
         }
     }
     writeln!(actual, "</tokens>").unwrap();

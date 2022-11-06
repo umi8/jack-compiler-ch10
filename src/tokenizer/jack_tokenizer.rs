@@ -20,6 +20,7 @@ pub enum TokenType {
     Symbol,
     Identifier,
     IntConst,
+    StringConst,
 }
 
 struct Token {
@@ -76,6 +77,19 @@ impl JackTokenizer {
             if self.has_more_tokens()? {
                 self.advance()?;
             }
+        } else if ch == '\"' {
+            self.current_line.next();
+            let mut ch = self.current_line.peek();
+            let mut value = String::new();
+            while self.current_line.has_next() && ch != '\"' {
+                value.push(self.current_line.next());
+                ch = self.current_line.peek();
+            }
+            self.token = Token {
+                token_type: TokenType::StringConst,
+                value,
+            };
+            self.current_line.next();
         } else if SYMBOLS.contains(&ch) {
             self.token = Token {
                 token_type: TokenType::Symbol,
@@ -107,6 +121,10 @@ impl JackTokenizer {
 
     pub fn int_val(&self) -> Result<usize> {
         Ok(self.token.value.parse::<usize>()?)
+    }
+
+    pub fn string_val(&self) -> &String {
+        &self.token.value
     }
 
     fn ignore_comments(&mut self) -> Result<()> {
@@ -329,6 +347,32 @@ mod tests {
         tokenizer.advance().unwrap();
         assert_eq!("123", tokenizer.token.value);
         assert_eq!(TokenType::IntConst, tokenizer.token.token_type);
+    }
+
+    #[test]
+    fn advance_if_string_constant() {
+        let mut tokenizer = JackTokenizer {
+            reader: BufReader::new(tempfile::tempfile().unwrap()),
+            current_line: Line::new("\"string constant\"".to_string()),
+            token: Default::default(),
+        };
+
+        tokenizer.advance().unwrap();
+        assert_eq!("string constant", tokenizer.token.value);
+        assert_eq!(TokenType::StringConst, tokenizer.token.token_type);
+    }
+
+    #[test]
+    fn advance_if_empty_string_constant() {
+        let mut tokenizer = JackTokenizer {
+            reader: BufReader::new(tempfile::tempfile().unwrap()),
+            current_line: Line::new("\"\"".to_string()),
+            token: Default::default(),
+        };
+
+        tokenizer.advance().unwrap();
+        assert_eq!("", tokenizer.token.value);
+        assert_eq!(TokenType::StringConst, tokenizer.token.token_type);
     }
 
     #[test]

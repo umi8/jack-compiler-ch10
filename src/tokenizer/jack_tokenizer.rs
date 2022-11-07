@@ -20,6 +20,7 @@ pub enum TokenType {
     Symbol,
     Identifier,
     IntConst,
+    StringConst,
 }
 
 struct Token {
@@ -72,10 +73,31 @@ impl JackTokenizer {
     pub fn advance(&mut self) -> Result<()> {
         let ch = self.current_line.peek();
         if ch == '/' {
-            self.ignore_comments();
-            if self.has_more_tokens()? {
-                self.advance()?;
+            self.current_line.next();
+            if self.current_line.peek() == '/' || self.current_line.peek() == '*' {
+                self.ignore_comments()?;
+                if self.has_more_tokens()? {
+                    self.advance()?;
+                }
+            } else {
+                self.token = Token {
+                    token_type: TokenType::Symbol,
+                    value: String::from("/"),
+                };
             }
+        } else if ch == '\"' {
+            self.current_line.next();
+            let mut ch = self.current_line.peek();
+            let mut value = String::new();
+            while self.current_line.has_next() && ch != '\"' {
+                value.push(self.current_line.next());
+                ch = self.current_line.peek();
+            }
+            self.token = Token {
+                token_type: TokenType::StringConst,
+                value,
+            };
+            self.current_line.next();
         } else if SYMBOLS.contains(&ch) {
             self.token = Token {
                 token_type: TokenType::Symbol,
@@ -109,29 +131,46 @@ impl JackTokenizer {
         Ok(self.token.value.parse::<usize>()?)
     }
 
-    fn ignore_comments(&mut self) {
-        self.current_line.next();
+    pub fn string_val(&self) -> &String {
+        &self.token.value
+    }
+
+    fn ignore_comments(&mut self) -> Result<()> {
         let mut ch = self.current_line.peek();
+
         if ch == '/' {
             self.current_line.move_cursor_to_end_of_line();
         } else if ch == '*' {
-            self.current_line.next();
-            let mut is_end = false;
-            while self.current_line.has_next() {
+            loop {
+                self.current_line.next();
                 ch = self.current_line.peek();
-                if ch != '/' && is_end {
-                    is_end = false;
+
+                while ch != '*' {
+                    if !self.current_line.has_next() {
+                        let mut buf = String::new();
+                        match self.reader.read_line(&mut buf) {
+                            Ok(0) => bail!(Error::msg("Format Error.")),
+                            Ok(_) => {
+                                self.current_line = Line::new(buf.trim().to_string());
+                            }
+                            Err(_) => bail!(Error::msg("Format Error.")),
+                        };
+                        ch = self.current_line.peek();
+                        continue;
+                    }
+
+                    self.current_line.next();
+                    ch = self.current_line.peek();
                 }
-                if ch == '*' {
-                    is_end = true;
-                }
-                if ch == '/' && is_end {
+
+                self.current_line.next();
+                if self.current_line.peek() == '/' {
                     self.current_line.next();
                     break;
                 }
-                self.current_line.next();
             }
         }
+        Ok(())
     }
 
     fn analyze_alphabetic(&mut self) {
@@ -258,7 +297,10 @@ const SYMBOLS: [char; 19] = [
 
 #[cfg(test)]
 mod tests {
-    use std::io::BufReader;
+    use std::io::Write;
+    use std::io::{BufRead, BufReader, Seek, SeekFrom};
+
+    use tempfile::tempfile;
 
     use crate::tokenizer::jack_tokenizer::{JackTokenizer, TokenType};
     use crate::tokenizer::line::Line;
@@ -316,6 +358,32 @@ mod tests {
     }
 
     #[test]
+    fn advance_if_string_constant() {
+        let mut tokenizer = JackTokenizer {
+            reader: BufReader::new(tempfile::tempfile().unwrap()),
+            current_line: Line::new("\"string constant\"".to_string()),
+            token: Default::default(),
+        };
+
+        tokenizer.advance().unwrap();
+        assert_eq!("string constant", tokenizer.token.value);
+        assert_eq!(TokenType::StringConst, tokenizer.token.token_type);
+    }
+
+    #[test]
+    fn advance_if_empty_string_constant() {
+        let mut tokenizer = JackTokenizer {
+            reader: BufReader::new(tempfile::tempfile().unwrap()),
+            current_line: Line::new("\"\"".to_string()),
+            token: Default::default(),
+        };
+
+        tokenizer.advance().unwrap();
+        assert_eq!("", tokenizer.token.value);
+        assert_eq!(TokenType::StringConst, tokenizer.token.token_type);
+    }
+
+    #[test]
     fn can_ignore_line_if_double_slash_comment() {
         let mut tokenizer = JackTokenizer {
             reader: BufReader::new(tempfile::tempfile().unwrap()),
@@ -323,7 +391,7 @@ mod tests {
             token: Default::default(),
         };
 
-        tokenizer.ignore_comments();
+        tokenizer.ignore_comments().unwrap();
         assert!(!tokenizer.current_line.has_next());
     }
 
@@ -335,21 +403,37 @@ mod tests {
             token: Default::default(),
         };
 
-        tokenizer.ignore_comments();
+        tokenizer.current_line.next();
+        tokenizer.ignore_comments().unwrap();
         assert!(tokenizer.current_line.has_next());
         assert_eq!(' ', tokenizer.current_line.peek());
     }
 
     #[test]
     fn can_ignore_until_end_of_comment_if_api_doc_comment() {
+        let mut file = tempfile().unwrap();
+        writeln!(file, "/**").unwrap();
+        writeln!(file, " * ").unwrap();
+        writeln!(file, " * multiline comments").unwrap();
+        writeln!(file, " * multiline comments").unwrap();
+        writeln!(file, " */").unwrap();
+        writeln!(file, "code;").unwrap();
+        file.seek(SeekFrom::Start(0)).unwrap();
+
+        let mut buf = String::new();
+        let mut reader = BufReader::new(file);
+        reader.read_line(&mut buf).unwrap();
+
         let mut tokenizer = JackTokenizer {
-            reader: BufReader::new(tempfile::tempfile().unwrap()),
-            current_line: Line::new("/** api doc comments */ code;".to_string()),
+            reader,
+            current_line: Line::new(buf),
             token: Default::default(),
         };
 
-        tokenizer.ignore_comments();
-        assert!(tokenizer.current_line.has_next());
-        assert_eq!(' ', tokenizer.current_line.peek());
+        tokenizer.current_line.next();
+        tokenizer.ignore_comments().unwrap();
+
+        assert!(!tokenizer.current_line.has_next());
+        assert_eq!('\0', tokenizer.current_line.peek());
     }
 }

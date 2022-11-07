@@ -26,6 +26,13 @@ fn square_square_game() {
     test_diff(expected_file_path, src_path);
 }
 
+#[test]
+fn array_test_main() {
+    let expected_file_path = Path::new("tests/resources/ArrayTest/MainT.xml");
+    let src_path = Path::new("tests/resources/ArrayTest/Main.jack");
+    test_diff(expected_file_path, src_path);
+}
+
 fn test_diff(expected_file_path: &Path, src_path: &Path) {
     let expected = read_to_string(expected_file_path).unwrap();
     let mut jack_tokenizer = JackTokenizer::new(src_path).unwrap();

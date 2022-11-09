@@ -81,7 +81,7 @@ impl JackTokenizer {
     }
 
     pub fn token_type(&self) -> &TokenType {
-        &self.token.token_type()
+        self.token.token_type()
     }
 
     pub fn key_word(&self) -> Result<KeyWord> {
@@ -93,7 +93,7 @@ impl JackTokenizer {
     }
 
     pub fn identifier(&self) -> &String {
-        &self.token.value()
+        self.token.value()
     }
 
     pub fn int_val(&self) -> Result<usize> {

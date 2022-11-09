@@ -7,20 +7,12 @@ use std::path::Path;
 use anyhow::{bail, Error, Result};
 
 use crate::tokenizer::line::Line;
+use crate::tokenizer::token_type::TokenType;
 
 pub struct JackTokenizer {
     reader: BufReader<File>,
     current_line: Line,
     token: Token,
-}
-
-#[derive(Debug, PartialEq, Eq)]
-pub enum TokenType {
-    Keyword,
-    Symbol,
-    Identifier,
-    IntConst,
-    StringConst,
 }
 
 struct Token {

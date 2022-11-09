@@ -3,7 +3,8 @@ use std::fs::read_to_string;
 use std::path::Path;
 use std::string::String;
 
-use jack_compiler::tokenizer::jack_tokenizer::{JackTokenizer, TokenType};
+use jack_compiler::tokenizer::jack_tokenizer::JackTokenizer;
+use jack_compiler::tokenizer::token_type::TokenType;
 
 #[test]
 fn square_main() {

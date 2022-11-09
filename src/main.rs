@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use anyhow::Result;
 use clap::Parser;
 
-use crate::tokenizer::jack_tokenizer::TokenType;
+use crate::tokenizer::token_type::TokenType;
 use tokenizer::jack_tokenizer::JackTokenizer;
 
 mod tokenizer;

@@ -1,40 +1,18 @@
-use std::fmt;
-use std::fmt::Formatter;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::path::Path;
 
 use anyhow::{bail, Error, Result};
 
+use crate::tokenizer::key_word::{KeyWord, KEYWORDS};
 use crate::tokenizer::line::Line;
+use crate::tokenizer::token::Token;
+use crate::tokenizer::token_type::TokenType;
 
 pub struct JackTokenizer {
     reader: BufReader<File>,
     current_line: Line,
     token: Token,
-}
-
-#[derive(Debug, PartialEq, Eq)]
-pub enum TokenType {
-    Keyword,
-    Symbol,
-    Identifier,
-    IntConst,
-    StringConst,
-}
-
-struct Token {
-    token_type: TokenType,
-    value: String,
-}
-
-impl Default for Token {
-    fn default() -> Self {
-        Self {
-            token_type: TokenType::Keyword,
-            value: "".to_string(),
-        }
-    }
 }
 
 impl JackTokenizer {
@@ -80,10 +58,7 @@ impl JackTokenizer {
                     self.advance()?;
                 }
             } else {
-                self.token = Token {
-                    token_type: TokenType::Symbol,
-                    value: String::from("/"),
-                };
+                self.token = Token::new(TokenType::Symbol, String::from("/"));
             }
         } else if ch == '\"' {
             self.current_line.next();
@@ -93,16 +68,10 @@ impl JackTokenizer {
                 value.push(self.current_line.next());
                 ch = self.current_line.peek();
             }
-            self.token = Token {
-                token_type: TokenType::StringConst,
-                value,
-            };
+            self.token = Token::new(TokenType::StringConst, value);
             self.current_line.next();
         } else if SYMBOLS.contains(&ch) {
-            self.token = Token {
-                token_type: TokenType::Symbol,
-                value: self.current_line.next().to_string(),
-            }
+            self.token = Token::new(TokenType::Symbol, self.current_line.next().to_string());
         } else if ch.is_numeric() {
             self.analyze_integer_constant();
         } else if ch.is_alphabetic() {
@@ -112,27 +81,27 @@ impl JackTokenizer {
     }
 
     pub fn token_type(&self) -> &TokenType {
-        &self.token.token_type
+        self.token.token_type()
     }
 
     pub fn key_word(&self) -> Result<KeyWord> {
-        KeyWord::from(self.token.value.as_str())
+        KeyWord::from(self.token.value().as_str())
     }
 
     pub fn symbol(&self) -> char {
-        self.token.value.parse().unwrap()
+        self.token.value().parse().unwrap()
     }
 
     pub fn identifier(&self) -> &String {
-        &self.token.value
+        self.token.value()
     }
 
     pub fn int_val(&self) -> Result<usize> {
-        Ok(self.token.value.parse::<usize>()?)
+        Ok(self.token.value().parse::<usize>()?)
     }
 
     pub fn string_val(&self) -> &String {
-        &self.token.value
+        self.token.value()
     }
 
     fn ignore_comments(&mut self) -> Result<()> {
@@ -179,18 +148,12 @@ impl JackTokenizer {
         while self.current_line.has_next() && ch.is_alphabetic() {
             value.push(self.current_line.next());
             if KEYWORDS.contains(&value.as_str()) {
-                self.token = Token {
-                    token_type: TokenType::Keyword,
-                    value,
-                };
+                self.token = Token::new(TokenType::Keyword, value);
                 return;
             }
             ch = self.current_line.peek();
         }
-        self.token = Token {
-            token_type: TokenType::Identifier,
-            value,
-        }
+        self.token = Token::new(TokenType::Identifier, value);
     }
 
     fn analyze_integer_constant(&mut self) {
@@ -200,96 +163,9 @@ impl JackTokenizer {
             value.push(self.current_line.next());
             ch = self.current_line.peek();
         }
-        self.token = Token {
-            token_type: TokenType::IntConst,
-            value,
-        }
+        self.token = Token::new(TokenType::IntConst, value);
     }
 }
-
-#[derive(Debug)]
-pub enum KeyWord {
-    Class,
-    Method,
-    Function,
-    Constructor,
-    Int,
-    Boolean,
-    Char,
-    Void,
-    Var,
-    Static,
-    Field,
-    Let,
-    Do,
-    If,
-    Else,
-    While,
-    Return,
-    True,
-    False,
-    Null,
-    This,
-}
-
-impl fmt::Display for KeyWord {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "{:?}", self)
-    }
-}
-
-impl KeyWord {
-    fn from(key_word: &str) -> Result<KeyWord> {
-        match key_word {
-            "class" => Ok(KeyWord::Class),
-            "constructor" => Ok(KeyWord::Constructor),
-            "function" => Ok(KeyWord::Function),
-            "method" => Ok(KeyWord::Method),
-            "field" => Ok(KeyWord::Field),
-            "static" => Ok(KeyWord::Static),
-            "var" => Ok(KeyWord::Var),
-            "int" => Ok(KeyWord::Int),
-            "char" => Ok(KeyWord::Char),
-            "boolean" => Ok(KeyWord::Boolean),
-            "void" => Ok(KeyWord::Void),
-            "true" => Ok(KeyWord::True),
-            "false" => Ok(KeyWord::False),
-            "null" => Ok(KeyWord::Null),
-            "this" => Ok(KeyWord::This),
-            "let" => Ok(KeyWord::Let),
-            "do" => Ok(KeyWord::Do),
-            "if" => Ok(KeyWord::If),
-            "else" => Ok(KeyWord::Else),
-            "while" => Ok(KeyWord::While),
-            "return" => Ok(KeyWord::Return),
-            _ => bail!(Error::msg(format!("Illegal Argument Error: {}", key_word))),
-        }
-    }
-}
-
-const KEYWORDS: [&str; 21] = [
-    "class",
-    "constructor",
-    "function",
-    "method",
-    "field",
-    "static",
-    "var",
-    "int",
-    "char",
-    "boolean",
-    "void",
-    "true",
-    "false",
-    "null",
-    "this",
-    "let",
-    "do",
-    "if",
-    "else",
-    "while",
-    "return",
-];
 
 const SYMBOLS: [char; 19] = [
     '{', '}', '(', ')', '[', ']', '.', ',', ';', '+', '-', '*', '/', '&', '|', '<', '>', '=', '~',
@@ -314,8 +190,8 @@ mod tests {
         };
 
         tokenizer.advance().unwrap();
-        assert_eq!("class", tokenizer.token.value);
-        assert_eq!(TokenType::Keyword, tokenizer.token.token_type);
+        assert_eq!("class", tokenizer.token.value());
+        assert_eq!(TokenType::Keyword, *tokenizer.token.token_type());
     }
 
     #[test]
@@ -327,8 +203,8 @@ mod tests {
         };
 
         tokenizer.advance().unwrap();
-        assert_eq!("Square", tokenizer.token.value);
-        assert_eq!(TokenType::Identifier, tokenizer.token.token_type);
+        assert_eq!("Square", tokenizer.token.value());
+        assert_eq!(TokenType::Identifier, *tokenizer.token.token_type());
     }
 
     #[test]
@@ -340,8 +216,8 @@ mod tests {
         };
 
         tokenizer.advance().unwrap();
-        assert_eq!("{", tokenizer.token.value);
-        assert_eq!(TokenType::Symbol, tokenizer.token.token_type);
+        assert_eq!("{", tokenizer.token.value());
+        assert_eq!(TokenType::Symbol, *tokenizer.token.token_type());
     }
 
     #[test]
@@ -353,8 +229,8 @@ mod tests {
         };
 
         tokenizer.advance().unwrap();
-        assert_eq!("123", tokenizer.token.value);
-        assert_eq!(TokenType::IntConst, tokenizer.token.token_type);
+        assert_eq!("123", tokenizer.token.value());
+        assert_eq!(TokenType::IntConst, *tokenizer.token.token_type());
     }
 
     #[test]
@@ -366,8 +242,8 @@ mod tests {
         };
 
         tokenizer.advance().unwrap();
-        assert_eq!("string constant", tokenizer.token.value);
-        assert_eq!(TokenType::StringConst, tokenizer.token.token_type);
+        assert_eq!("string constant", tokenizer.token.value());
+        assert_eq!(TokenType::StringConst, *tokenizer.token.token_type());
     }
 
     #[test]
@@ -379,8 +255,8 @@ mod tests {
         };
 
         tokenizer.advance().unwrap();
-        assert_eq!("", tokenizer.token.value);
-        assert_eq!(TokenType::StringConst, tokenizer.token.token_type);
+        assert_eq!("", tokenizer.token.value());
+        assert_eq!(TokenType::StringConst, *tokenizer.token.token_type());
     }
 
     #[test]

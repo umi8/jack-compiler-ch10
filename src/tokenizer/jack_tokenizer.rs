@@ -101,7 +101,7 @@ impl JackTokenizer {
     }
 
     pub fn string_val(&self) -> &String {
-        &self.token.value()
+        self.token.value()
     }
 
     fn ignore_comments(&mut self) -> Result<()> {

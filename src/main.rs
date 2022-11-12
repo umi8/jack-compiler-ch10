@@ -1,11 +1,14 @@
+use std::fs::File;
 use std::path::PathBuf;
 
 use anyhow::Result;
 use clap::Parser;
 
-use crate::tokenizer::token_type::TokenType;
 use tokenizer::jack_tokenizer::JackTokenizer;
 
+use crate::tokenizer::token_type::TokenType;
+
+mod compilation_engine;
 mod tokenizer;
 
 /// Jack Compiler
@@ -19,7 +22,8 @@ struct Args {
 
 fn main() -> Result<()> {
     let args = Args::parse();
-    let mut jack_tokenizer = JackTokenizer::new(args.path.as_path())?;
+    let file = File::open(args.path.as_path())?;
+    let mut jack_tokenizer = JackTokenizer::new(file)?;
 
     while jack_tokenizer.has_more_tokens()? {
         jack_tokenizer.advance()?;

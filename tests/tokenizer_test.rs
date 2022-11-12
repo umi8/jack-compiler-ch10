@@ -1,5 +1,5 @@
 use std::fmt::Write;
-use std::fs::read_to_string;
+use std::fs::{read_to_string, File};
 use std::path::Path;
 use std::string::String;
 
@@ -10,33 +10,37 @@ use jack_compiler::tokenizer::token_type::TokenType;
 fn square_main() {
     let expected_file_path = Path::new("tests/resources/Square/MainT.xml");
     let src_path = Path::new("tests/resources/Square/Main.jack");
-    test_diff(expected_file_path, src_path);
+    let src_file = File::open(src_path).unwrap();
+    test_diff(expected_file_path, src_file);
 }
 
 #[test]
 fn square_square() {
     let expected_file_path = Path::new("tests/resources/Square/SquareT.xml");
     let src_path = Path::new("tests/resources/Square/Square.jack");
-    test_diff(expected_file_path, src_path);
+    let src_file = File::open(src_path).unwrap();
+    test_diff(expected_file_path, src_file);
 }
 
 #[test]
 fn square_square_game() {
     let expected_file_path = Path::new("tests/resources/Square/SquareGameT.xml");
     let src_path = Path::new("tests/resources/Square/SquareGame.jack");
-    test_diff(expected_file_path, src_path);
+    let src_file = File::open(src_path).unwrap();
+    test_diff(expected_file_path, src_file);
 }
 
 #[test]
 fn array_test_main() {
     let expected_file_path = Path::new("tests/resources/ArrayTest/MainT.xml");
     let src_path = Path::new("tests/resources/ArrayTest/Main.jack");
-    test_diff(expected_file_path, src_path);
+    let src_file = File::open(src_path).unwrap();
+    test_diff(expected_file_path, src_file);
 }
 
-fn test_diff(expected_file_path: &Path, src_path: &Path) {
+fn test_diff(expected_file_path: &Path, src_file: File) {
     let expected = read_to_string(expected_file_path).unwrap();
-    let mut jack_tokenizer = JackTokenizer::new(src_path).unwrap();
+    let mut jack_tokenizer = JackTokenizer::new(src_file).unwrap();
 
     let mut actual = String::new();
     writeln!(actual, "<tokens>").unwrap();

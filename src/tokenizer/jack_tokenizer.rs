@@ -1,6 +1,5 @@
 use std::fs::File;
 use std::io::{BufRead, BufReader};
-use std::path::Path;
 
 use anyhow::{bail, Error, Result};
 
@@ -16,8 +15,7 @@ pub struct JackTokenizer {
 }
 
 impl JackTokenizer {
-    pub fn new(path: &Path) -> Result<Self> {
-        let file = File::open(path)?;
+    pub fn new(file: File) -> Result<Self> {
         Ok(JackTokenizer {
             reader: BufReader::new(file),
             current_line: Default::default(),

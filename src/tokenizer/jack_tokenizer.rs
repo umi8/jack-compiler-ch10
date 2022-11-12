@@ -47,6 +47,7 @@ impl JackTokenizer {
     }
 
     pub fn advance(&mut self) -> Result<()> {
+        self.current_line.skip_whitespace();
         let ch = self.current_line.peek();
         if ch == '/' {
             self.current_line.next();
@@ -74,6 +75,10 @@ impl JackTokenizer {
             self.analyze_integer_constant();
         } else if ch.is_alphabetic() {
             self.analyze_alphabetic();
+        } else if ch == '\0' {
+            if self.has_more_tokens()? {
+                self.advance()?;
+            }
         }
         Ok(())
     }

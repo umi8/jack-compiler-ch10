@@ -75,10 +75,8 @@ impl JackTokenizer {
             self.analyze_integer_constant();
         } else if ch.is_alphabetic() {
             self.analyze_alphabetic();
-        } else if ch == '\0' {
-            if self.has_more_tokens()? {
-                self.advance()?;
-            }
+        } else if ch == '\0' && self.has_more_tokens()? {
+            self.advance()?;
         }
         Ok(())
     }

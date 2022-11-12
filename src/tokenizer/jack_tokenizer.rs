@@ -9,9 +9,9 @@ use crate::tokenizer::token::Token;
 use crate::tokenizer::token_type::TokenType;
 
 pub struct JackTokenizer {
-    reader: BufReader<File>,
-    current_line: Line,
-    token: Token,
+    pub reader: BufReader<File>,
+    pub current_line: Line,
+    pub token: Token,
 }
 
 impl JackTokenizer {

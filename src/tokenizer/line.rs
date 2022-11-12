@@ -1,4 +1,4 @@
-pub(crate) struct Line {
+pub struct Line {
     line: String,
     current_index: usize,
     max_len: usize,
@@ -15,7 +15,7 @@ impl Default for Line {
 }
 
 impl Line {
-    pub(crate) fn new(line: String) -> Self {
+    pub fn new(line: String) -> Self {
         let len = line.len();
         Line {
             line,

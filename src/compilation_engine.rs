@@ -7,6 +7,7 @@ use crate::{JackTokenizer, TokenType};
 trait CompilationEngine {
     fn new(tokenizer: JackTokenizer) -> Self;
     fn compile_class(&mut self, writer: &mut impl Write) -> Result<()>;
+    fn compile_class_var_dec(&mut self, writer: &mut impl Write) -> Result<()>;
 }
 
 struct XmlCompilationEngine {
@@ -60,6 +61,51 @@ impl CompilationEngine for XmlCompilationEngine {
         writeln!(writer, "</class>")?;
         Ok(())
     }
+
+    fn compile_class_var_dec(&mut self, writer: &mut impl Write) -> Result<()> {
+        writeln!(writer, "<classVarDec>")?;
+
+        self.tokenizer.advance()?;
+        match self.tokenizer.token_type() {
+            TokenType::Keyword => writeln!(
+                writer,
+                "<keyword> {} </keyword>",
+                self.tokenizer.key_word()?.to_string().to_lowercase()
+            )?,
+            _ => bail!(Error::msg("Illegal token")),
+        }
+
+        self.tokenizer.advance()?;
+        match self.tokenizer.token_type() {
+            TokenType::Keyword => writeln!(
+                writer,
+                "<keyword> {} </keyword>",
+                self.tokenizer.key_word()?.to_string().to_lowercase()
+            )?,
+            _ => bail!(Error::msg("Illegal token")),
+        }
+
+        self.tokenizer.advance()?;
+        match self.tokenizer.token_type() {
+            TokenType::Identifier => writeln!(
+                writer,
+                "<identifier> {} </identifier>",
+                self.tokenizer.identifier()
+            )?,
+            _ => bail!(Error::msg("Illegal token")),
+        }
+
+        self.tokenizer.advance()?;
+        match self.tokenizer.token_type() {
+            TokenType::Symbol => {
+                writeln!(writer, "<symbol> {} </symbol>", self.tokenizer.symbol())?
+            }
+            _ => bail!(Error::msg("Illegal token")),
+        }
+
+        writeln!(writer, "</classVarDec>")?;
+        Ok(())
+    }
 }
 
 #[cfg(test)]
@@ -89,6 +135,31 @@ mod tests {
         let mut engine = XmlCompilationEngine::new(tokenizer);
 
         let result = engine.compile_class(&mut output);
+        let actual = String::from_utf8(output).unwrap();
+
+        assert!(result.is_ok());
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn can_compile_class_var_dec() {
+        let expected = "<classVarDec>\n\
+        <keyword> static </keyword>\n\
+        <keyword> boolean </keyword>\n\
+        <identifier> test </identifier>\n\
+        <symbol> ; </symbol>\n\
+        </classVarDec>\n"
+            .to_string();
+
+        let mut src_file = tempfile::tempfile().unwrap();
+        writeln!(src_file, "static boolean test;").unwrap();
+        src_file.seek(SeekFrom::Start(0)).unwrap();
+        let mut output = Vec::<u8>::new();
+
+        let tokenizer = JackTokenizer::new(src_file).unwrap();
+        let mut engine = XmlCompilationEngine::new(tokenizer);
+
+        let result = engine.compile_class_var_dec(&mut output);
         let actual = String::from_utf8(output).unwrap();
 
         assert!(result.is_ok());

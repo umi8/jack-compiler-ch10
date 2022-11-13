@@ -64,7 +64,21 @@ impl CompilationEngine for XmlCompilationEngine {
 
     fn compile_class_var_dec(&mut self, writer: &mut impl Write) -> Result<()> {
         writeln!(writer, "<classVarDec>")?;
+        // static or field
+        self.write_key_word(writer)?;
+        // type
+        self.write_key_word(writer)?;
+        // varName
+        self.write_identifier(writer)?;
+        // ;
+        self.write_symbol(writer)?;
+        writeln!(writer, "</classVarDec>")?;
+        Ok(())
+    }
+}
 
+impl XmlCompilationEngine {
+    fn write_key_word(&mut self, writer: &mut impl Write) -> Result<()> {
         self.tokenizer.advance()?;
         match self.tokenizer.token_type() {
             TokenType::Keyword => writeln!(
@@ -74,17 +88,10 @@ impl CompilationEngine for XmlCompilationEngine {
             )?,
             _ => bail!(Error::msg("Illegal token")),
         }
+        Ok(())
+    }
 
-        self.tokenizer.advance()?;
-        match self.tokenizer.token_type() {
-            TokenType::Keyword => writeln!(
-                writer,
-                "<keyword> {} </keyword>",
-                self.tokenizer.key_word()?.to_string().to_lowercase()
-            )?,
-            _ => bail!(Error::msg("Illegal token")),
-        }
-
+    fn write_identifier(&mut self, writer: &mut impl Write) -> Result<()> {
         self.tokenizer.advance()?;
         match self.tokenizer.token_type() {
             TokenType::Identifier => writeln!(
@@ -94,7 +101,10 @@ impl CompilationEngine for XmlCompilationEngine {
             )?,
             _ => bail!(Error::msg("Illegal token")),
         }
+        Ok(())
+    }
 
+    fn write_symbol(&mut self, writer: &mut impl Write) -> Result<()> {
         self.tokenizer.advance()?;
         match self.tokenizer.token_type() {
             TokenType::Symbol => {
@@ -102,8 +112,6 @@ impl CompilationEngine for XmlCompilationEngine {
             }
             _ => bail!(Error::msg("Illegal token")),
         }
-
-        writeln!(writer, "</classVarDec>")?;
         Ok(())
     }
 }

@@ -1,6 +1,5 @@
 use std::fs::File;
 use std::io::{BufRead, BufReader};
-use std::path::Path;
 
 use anyhow::{bail, Error, Result};
 
@@ -10,14 +9,13 @@ use crate::tokenizer::token::Token;
 use crate::tokenizer::token_type::TokenType;
 
 pub struct JackTokenizer {
-    reader: BufReader<File>,
-    current_line: Line,
-    token: Token,
+    pub reader: BufReader<File>,
+    pub current_line: Line,
+    pub token: Token,
 }
 
 impl JackTokenizer {
-    pub fn new(path: &Path) -> Result<Self> {
-        let file = File::open(path)?;
+    pub fn new(file: File) -> Result<Self> {
         Ok(JackTokenizer {
             reader: BufReader::new(file),
             current_line: Default::default(),
@@ -49,6 +47,7 @@ impl JackTokenizer {
     }
 
     pub fn advance(&mut self) -> Result<()> {
+        self.current_line.skip_whitespace();
         let ch = self.current_line.peek();
         if ch == '/' {
             self.current_line.next();
@@ -76,6 +75,8 @@ impl JackTokenizer {
             self.analyze_integer_constant();
         } else if ch.is_alphabetic() {
             self.analyze_alphabetic();
+        } else if ch == '\0' && self.has_more_tokens()? {
+            self.advance()?;
         }
         Ok(())
     }

@@ -71,16 +71,27 @@ mod tests {
 
     #[test]
     fn can_compile_class() {
-        let mut file = tempfile::tempfile().unwrap();
-        writeln!(file, "class Main {{").unwrap();
-        writeln!(file, "}}").unwrap();
-        file.seek(SeekFrom::Start(0)).unwrap();
-        let tokenizer = JackTokenizer::new(file).unwrap();
+        let expected = "<class>\n\
+        <keyword> class </keyword>\n\
+        <identifier> Main </identifier>\n\
+        <symbol> { </symbol>\n\
+        <symbol> } </symbol>\n\
+        </class>\n"
+            .to_string();
+
+        let mut src_file = tempfile::tempfile().unwrap();
+        writeln!(src_file, "class Main {{").unwrap();
+        writeln!(src_file, "}}").unwrap();
+        src_file.seek(SeekFrom::Start(0)).unwrap();
         let mut output = Vec::<u8>::new();
+
+        let tokenizer = JackTokenizer::new(src_file).unwrap();
         let mut engine = XmlCompilationEngine::new(tokenizer);
 
-        engine.compile_class(&mut output).unwrap();
+        let result = engine.compile_class(&mut output);
+        let actual = String::from_utf8(output).unwrap();
 
-        assert_eq!(&output, b"HELLO, WORLD!\n");
+        assert!(result.is_ok());
+        assert_eq!(expected, actual);
     }
 }

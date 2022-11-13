@@ -69,7 +69,9 @@ impl CompilationEngine for XmlCompilationEngine {
 
 #[cfg(test)]
 mod tests {
+    use std::fs::File;
     use std::io::{stdout, Seek, SeekFrom, Write};
+    use std::path::Path;
 
     use crate::compilation_engine::{CompilationEngine, XmlCompilationEngine};
     use crate::JackTokenizer;
@@ -83,6 +85,7 @@ mod tests {
         let tokenizer = JackTokenizer::new(file).unwrap();
         let buf = Vec::<u8>::new();
         let buf = stdout().lock();
+        let buf = File::create(Path::new("sample.xml")).unwrap();
         let mut engine = XmlCompilationEngine::new(tokenizer, Box::new(buf));
 
         engine.compile_class().unwrap();

@@ -21,43 +21,14 @@ impl CompilationEngine for XmlCompilationEngine {
 
     fn compile_class(&mut self, writer: &mut impl Write) -> Result<()> {
         writeln!(writer, "<class>")?;
-
-        self.tokenizer.advance()?;
-        match self.tokenizer.token_type() {
-            TokenType::Keyword => writeln!(
-                writer,
-                "<keyword> {} </keyword>",
-                self.tokenizer.key_word()?.to_string().to_lowercase()
-            )?,
-            _ => bail!(Error::msg("Illegal token")),
-        }
-
-        self.tokenizer.advance()?;
-        match self.tokenizer.token_type() {
-            TokenType::Identifier => writeln!(
-                writer,
-                "<identifier> {} </identifier>",
-                self.tokenizer.identifier()
-            )?,
-            _ => bail!(Error::msg("Illegal token")),
-        }
-
-        self.tokenizer.advance()?;
-        match self.tokenizer.token_type() {
-            TokenType::Symbol => {
-                writeln!(writer, "<symbol> {} </symbol>", self.tokenizer.symbol())?
-            }
-            _ => bail!(Error::msg("Illegal token")),
-        }
-
-        self.tokenizer.advance()?;
-        match self.tokenizer.token_type() {
-            TokenType::Symbol => {
-                writeln!(writer, "<symbol> {} </symbol>", self.tokenizer.symbol())?
-            }
-            _ => bail!(Error::msg("Illegal token")),
-        }
-
+        // class
+        self.write_key_word(writer)?;
+        // className
+        self.write_identifier(writer)?;
+        // {
+        self.write_symbol(writer)?;
+        // }
+        self.write_symbol(writer)?;
         writeln!(writer, "</class>")?;
         Ok(())
     }

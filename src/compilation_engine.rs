@@ -5,27 +5,26 @@ use anyhow::{bail, Error, Result};
 use crate::{JackTokenizer, TokenType};
 
 trait CompilationEngine {
-    fn new(tokenizer: JackTokenizer, writer: Box<dyn Write>) -> Self;
-    fn compile_class(&mut self) -> Result<()>;
+    fn new(tokenizer: JackTokenizer) -> Self;
+    fn compile_class(&mut self, writer: &mut impl Write) -> Result<()>;
 }
 
 struct XmlCompilationEngine {
     tokenizer: JackTokenizer,
-    writer: Box<dyn Write>,
 }
 
 impl CompilationEngine for XmlCompilationEngine {
-    fn new(tokenizer: JackTokenizer, writer: Box<dyn Write>) -> Self {
-        XmlCompilationEngine { tokenizer, writer }
+    fn new(tokenizer: JackTokenizer) -> Self {
+        XmlCompilationEngine { tokenizer }
     }
 
-    fn compile_class(&mut self) -> Result<()> {
-        writeln!(self.writer, "<class>")?;
+    fn compile_class(&mut self, writer: &mut impl Write) -> Result<()> {
+        writeln!(writer, "<class>")?;
 
         self.tokenizer.advance()?;
         match self.tokenizer.token_type() {
             TokenType::Keyword => writeln!(
-                self.writer,
+                writer,
                 "<keyword> {} </keyword>",
                 self.tokenizer.key_word()?.to_string().to_lowercase()
             )?,
@@ -35,7 +34,7 @@ impl CompilationEngine for XmlCompilationEngine {
         self.tokenizer.advance()?;
         match self.tokenizer.token_type() {
             TokenType::Identifier => writeln!(
-                self.writer,
+                writer,
                 "<identifier> {} </identifier>",
                 self.tokenizer.identifier()
             )?,
@@ -44,52 +43,44 @@ impl CompilationEngine for XmlCompilationEngine {
 
         self.tokenizer.advance()?;
         match self.tokenizer.token_type() {
-            TokenType::Symbol => writeln!(
-                self.writer,
-                "<symbol> {} </symbol>",
-                self.tokenizer.symbol()
-            )?,
+            TokenType::Symbol => {
+                writeln!(writer, "<symbol> {} </symbol>", self.tokenizer.symbol())?
+            }
             _ => bail!(Error::msg("Illegal token")),
         }
 
         self.tokenizer.advance()?;
         match self.tokenizer.token_type() {
-            TokenType::Symbol => writeln!(
-                self.writer,
-                "<symbol> {} </symbol>",
-                self.tokenizer.symbol()
-            )?,
+            TokenType::Symbol => {
+                writeln!(writer, "<symbol> {} </symbol>", self.tokenizer.symbol())?
+            }
             _ => bail!(Error::msg("Illegal token")),
         }
 
-        writeln!(self.writer, "</class>")?;
+        writeln!(writer, "</class>")?;
         Ok(())
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use std::fs::File;
-    use std::io::{stdout, Seek, SeekFrom, Write};
-    use std::path::Path;
+    use std::io::{Seek, SeekFrom, Write};
 
     use crate::compilation_engine::{CompilationEngine, XmlCompilationEngine};
     use crate::JackTokenizer;
 
     #[test]
-    fn test() {
+    fn can_compile_class() {
         let mut file = tempfile::tempfile().unwrap();
         writeln!(file, "class Main {{").unwrap();
         writeln!(file, "}}").unwrap();
         file.seek(SeekFrom::Start(0)).unwrap();
         let tokenizer = JackTokenizer::new(file).unwrap();
-        let buf = Vec::<u8>::new();
-        let buf = stdout().lock();
-        let buf = File::create(Path::new("sample.xml")).unwrap();
-        let mut engine = XmlCompilationEngine::new(tokenizer, Box::new(buf));
+        let mut output = Vec::<u8>::new();
+        let mut engine = XmlCompilationEngine::new(tokenizer);
 
-        engine.compile_class().unwrap();
+        engine.compile_class(&mut output).unwrap();
 
-        assert!(true);
+        assert_eq!(&output, b"HELLO, WORLD!\n");
     }
 }

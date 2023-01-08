@@ -19,6 +19,7 @@ impl CompilationEngine for XmlCompilationEngine {
         XmlCompilationEngine { tokenizer }
     }
 
+    /// class = ’class’ className ’{’ classVarDec* subroutineDec* ’}’
     fn compile_class(&mut self, writer: &mut impl Write) -> Result<()> {
         writeln!(writer, "<class>")?;
         // class

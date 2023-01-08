@@ -2,12 +2,14 @@ use std::io::Write;
 
 use anyhow::{bail, Error, Result};
 
+use crate::tokenizer::key_word::KeyWord;
 use crate::{JackTokenizer, TokenType};
 
 trait CompilationEngine {
     fn new(tokenizer: JackTokenizer) -> Self;
     fn compile_class(&mut self, writer: &mut impl Write) -> Result<()>;
     fn compile_class_var_dec(&mut self, writer: &mut impl Write) -> Result<()>;
+    fn compile_type(&mut self, writer: &mut impl Write) -> Result<()>;
 }
 
 struct XmlCompilationEngine {
@@ -19,6 +21,7 @@ impl CompilationEngine for XmlCompilationEngine {
         XmlCompilationEngine { tokenizer }
     }
 
+    /// class = ’class’ className ’{’ classVarDec* subroutineDec* ’}’
     fn compile_class(&mut self, writer: &mut impl Write) -> Result<()> {
         writeln!(writer, "<class>")?;
         // class
@@ -33,17 +36,40 @@ impl CompilationEngine for XmlCompilationEngine {
         Ok(())
     }
 
+    /// classVarDec = (’static’ | ’field’) type varName (’,’ varName)* ’;’
     fn compile_class_var_dec(&mut self, writer: &mut impl Write) -> Result<()> {
         writeln!(writer, "<classVarDec>")?;
         // static or field
         self.write_key_word(writer)?;
         // type
-        self.write_key_word(writer)?;
+        self.compile_type(writer)?;
         // varName
         self.write_identifier(writer)?;
         // ;
         self.write_symbol(writer)?;
         writeln!(writer, "</classVarDec>")?;
+        Ok(())
+    }
+
+    /// type = ’int’ | ’char’ | ’boolean’ | className
+    fn compile_type(&mut self, writer: &mut impl Write) -> Result<()> {
+        self.tokenizer.advance()?;
+        match self.tokenizer.token_type() {
+            TokenType::Keyword => match self.tokenizer.key_word()? {
+                KeyWord::Int | KeyWord::Boolean | KeyWord::Char => writeln!(
+                    writer,
+                    "<keyword> {} </keyword>",
+                    self.tokenizer.key_word()?.to_string().to_lowercase()
+                )?,
+                _ => bail!(Error::msg("Illegal token")),
+            },
+            TokenType::Identifier => writeln!(
+                writer,
+                "<identifier> {} </identifier>",
+                self.tokenizer.identifier()
+            )?,
+            _ => bail!(Error::msg("Illegal token")),
+        }
         Ok(())
     }
 }

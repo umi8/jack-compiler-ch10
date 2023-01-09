@@ -42,6 +42,7 @@ impl CompilationEngine for XmlCompilationEngine {
         // static or field
         self.write_key_word(writer)?;
         // type
+        self.tokenizer.advance()?;
         self.compile_type(writer)?;
         // varName
         self.write_identifier(writer)?;
@@ -53,7 +54,6 @@ impl CompilationEngine for XmlCompilationEngine {
 
     /// type = ’int’ | ’char’ | ’boolean’ | className
     fn compile_type(&mut self, writer: &mut impl Write) -> Result<()> {
-        self.tokenizer.advance()?;
         match self.tokenizer.token_type() {
             TokenType::Keyword => match self.tokenizer.key_word()? {
                 KeyWord::Int | KeyWord::Boolean | KeyWord::Char => writeln!(

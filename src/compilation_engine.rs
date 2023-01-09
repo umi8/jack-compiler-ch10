@@ -10,6 +10,7 @@ trait CompilationEngine {
     fn compile_class(&mut self, writer: &mut impl Write) -> Result<()>;
     fn compile_class_var_dec(&mut self, writer: &mut impl Write) -> Result<()>;
     fn compile_type(&mut self, writer: &mut impl Write) -> Result<()>;
+    fn compile_subroutine_dec(&mut self, writer: &mut impl Write) -> Result<()>;
 }
 
 struct XmlCompilationEngine {
@@ -42,6 +43,7 @@ impl CompilationEngine for XmlCompilationEngine {
         // static or field
         self.write_key_word(writer)?;
         // type
+        self.tokenizer.advance()?;
         self.compile_type(writer)?;
         // varName
         self.write_identifier(writer)?;
@@ -53,7 +55,6 @@ impl CompilationEngine for XmlCompilationEngine {
 
     /// type = ’int’ | ’char’ | ’boolean’ | className
     fn compile_type(&mut self, writer: &mut impl Write) -> Result<()> {
-        self.tokenizer.advance()?;
         match self.tokenizer.token_type() {
             TokenType::Keyword => match self.tokenizer.key_word()? {
                 KeyWord::Int | KeyWord::Boolean | KeyWord::Char => writeln!(
@@ -70,6 +71,57 @@ impl CompilationEngine for XmlCompilationEngine {
             )?,
             _ => bail!(Error::msg("Illegal token")),
         }
+        Ok(())
+    }
+
+    /// subroutineDec =(’constructor’ | ’function’ | ’method’) (’void’ | type) subroutineName ’(’ parameterList ’)’ subroutineBody
+    fn compile_subroutine_dec(&mut self, writer: &mut impl Write) -> Result<()> {
+        writeln!(writer, "<subroutineDec>")?;
+
+        // ’constructor’ | ’function’ | ’method’
+        self.tokenizer.advance()?;
+        match self.tokenizer.token_type() {
+            TokenType::Keyword => match self.tokenizer.key_word()? {
+                KeyWord::Constructor | KeyWord::Function | KeyWord::Method => writeln!(
+                    writer,
+                    "<keyword> {} </keyword>",
+                    self.tokenizer.key_word()?.to_string().to_lowercase()
+                )?,
+                _ => bail!(Error::msg("Illegal token")),
+            },
+            _ => bail!(Error::msg("Illegal token")),
+        }
+
+        // ’void’ | type
+        self.tokenizer.advance()?;
+        match self.tokenizer.token_type() {
+            TokenType::Keyword => match self.tokenizer.key_word()? {
+                KeyWord::Void => writeln!(
+                    writer,
+                    "<keyword> {} </keyword>",
+                    self.tokenizer.key_word()?.to_string().to_lowercase()
+                )?,
+                _ => bail!(Error::msg("Illegal token")),
+            },
+            _ => self.compile_type(writer)?,
+        }
+
+        // subroutineName
+        self.write_identifier(writer)?;
+
+        // ’(’
+        self.write_symbol(writer)?;
+
+        // TODO: parameterList
+        writeln!(writer, "<parameterList>")?;
+        writeln!(writer, "</parameterList>")?;
+
+        // ’)’
+        self.write_symbol(writer)?;
+
+        // TODO: subroutineBody
+
+        writeln!(writer, "</subroutineDec>")?;
         Ok(())
     }
 }
@@ -165,6 +217,34 @@ mod tests {
         let mut engine = XmlCompilationEngine::new(tokenizer);
 
         let result = engine.compile_class_var_dec(&mut output);
+        let actual = String::from_utf8(output).unwrap();
+
+        assert!(result.is_ok());
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn can_compile_subroutine_dec() {
+        let expected = "<subroutineDec>\n\
+        <keyword> function </keyword>\n\
+        <keyword> void </keyword>\n\
+        <identifier> main </identifier>\n\
+        <symbol> ( </symbol>\n\
+        <parameterList>\n\
+        </parameterList>\n\
+        <symbol> ) </symbol>\n\
+        </subroutineDec>\n"
+            .to_string();
+
+        let mut src_file = tempfile::tempfile().unwrap();
+        writeln!(src_file, "function void main()").unwrap();
+        src_file.seek(SeekFrom::Start(0)).unwrap();
+        let mut output = Vec::<u8>::new();
+
+        let tokenizer = JackTokenizer::new(src_file).unwrap();
+        let mut engine = XmlCompilationEngine::new(tokenizer);
+
+        let result = engine.compile_subroutine_dec(&mut output);
         let actual = String::from_utf8(output).unwrap();
 
         assert!(result.is_ok());

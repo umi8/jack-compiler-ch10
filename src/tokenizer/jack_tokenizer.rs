@@ -9,7 +9,7 @@ use crate::tokenizer::token::Token;
 use crate::tokenizer::token_type::TokenType;
 
 pub struct JackTokenizer {
-    pub tokens: VecDeque<Token>,
+    tokens: VecDeque<Token>,
     current_token: Token,
 }
 
@@ -100,8 +100,6 @@ impl JackTokenizer {
 
         let mut index = 0;
         let chars: Vec<char> = source.chars().collect();
-        println!("{}", chars[34]);
-        println!("{}", chars[35]);
         while index < chars.len() {
             let current = chars[index];
             match current {
@@ -136,7 +134,6 @@ impl JackTokenizer {
         let mut value = String::new();
         while index < chars.len() && chars[index] != '\"' {
             value.push(chars[index]);
-            println!("{}", chars[index]);
             index += 1;
         }
         index += 1;

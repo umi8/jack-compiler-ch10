@@ -1,15 +1,10 @@
-use std::fs;
-use std::fs::File;
-use std::io::{BufRead, BufReader};
-use std::path::{Path, PathBuf};
-use std::time::Instant;
+use std::path::PathBuf;
 
-use anyhow::{Context, Result};
+use anyhow::Result;
 use clap::Parser;
 
-use tokenizer::jack_tokenizer::JackTokenizer;
-
 use crate::tokenizer::token_type::TokenType;
+use tokenizer::jack_tokenizer::JackTokenizer;
 
 mod tokenizer;
 
@@ -23,10 +18,34 @@ struct Args {
 }
 
 fn main() -> Result<()> {
-    // let args = Args::parse();
-    // let file = File::open(args.path.as_path())?;
-    let mut jack_tokenizer =
-        JackTokenizer::new(Path::new("tests/resources/ExpressionLessSquare/Main.jack"))?;
+    let args = Args::parse();
+    let mut jack_tokenizer = JackTokenizer::new(args.path.as_path())?;
 
+    while jack_tokenizer.has_more_tokens()? {
+        jack_tokenizer.advance()?;
+        match jack_tokenizer.token_type()? {
+            TokenType::Keyword => {
+                println!("<keyword> {} </keyword>", jack_tokenizer.value()?)
+            }
+            TokenType::Symbol => {
+                println!("<symbol> {} </symbol>", jack_tokenizer.value()?)
+            }
+            TokenType::Identifier => {
+                println!("<identifier> {} </identifier>", jack_tokenizer.value()?)
+            }
+            TokenType::IntConst => {
+                println!(
+                    "<integerConstant> {} </integerConstant>",
+                    jack_tokenizer.value()?
+                )
+            }
+            TokenType::StringConst => {
+                println!(
+                    "<stringConstant> {} </stringConstant>",
+                    jack_tokenizer.value()?
+                )
+            }
+        }
+    }
     Ok(())
 }

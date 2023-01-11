@@ -1,16 +1,17 @@
+use std::collections::vec_deque::VecDeque;
 use std::fs;
-use std::fs::File;
-use std::io::{BufRead, BufReader};
 use std::path::Path;
 
 use anyhow::{bail, Context, Error, Result};
 
-use crate::tokenizer::key_word::{KeyWord, KEYWORDS};
-use crate::tokenizer::line::Line;
+use crate::tokenizer::key_word::KEYWORDS;
 use crate::tokenizer::token::Token;
 use crate::tokenizer::token_type::TokenType;
 
-pub struct JackTokenizer {}
+pub struct JackTokenizer {
+    pub tokens: VecDeque<Token>,
+    current_token: Token,
+}
 
 impl JackTokenizer {
     pub fn new(path: &Path) -> Result<Self> {
@@ -18,11 +19,39 @@ impl JackTokenizer {
         let code_without_comments = Self::remove_comments(code)?;
         let tokens = Self::tokenize(code_without_comments)?;
 
-        for t in tokens {
-            println!("{:?}", t);
-        }
+        Ok(JackTokenizer {
+            tokens,
+            current_token: Default::default(),
+        })
+    }
 
-        Ok(JackTokenizer {})
+    pub fn has_more_tokens(&mut self) -> Result<bool> {
+        Ok(!self.tokens.is_empty())
+    }
+
+    pub fn advance(&mut self) -> Result<()> {
+        if self.has_more_tokens()? {
+            self.current_token = self.tokens.pop_front().context("pop failed.")?
+        } else {
+            bail!(Error::msg("pop failed."))
+        }
+        Ok(())
+    }
+
+    pub fn peek(&mut self) -> Result<&Token> {
+        if self.has_more_tokens()? {
+            self.tokens.get(0).context("get failed.")
+        } else {
+            bail!(Error::msg("get failed."))
+        }
+    }
+
+    pub fn token_type(&mut self) -> Result<&TokenType> {
+        Ok(self.current_token.token_type())
+    }
+
+    pub fn value(&mut self) -> Result<&String> {
+        Ok(self.current_token.value())
     }
 
     fn remove_comments(code: String) -> Result<String> {
@@ -66,52 +95,76 @@ impl JackTokenizer {
         Ok(code_without_comments)
     }
 
-    fn tokenize(source: String) -> Result<Vec<Token>> {
-        let mut tokens: Vec<Token> = Vec::new();
+    fn tokenize(source: String) -> Result<VecDeque<Token>> {
+        let mut tokens: VecDeque<Token> = VecDeque::new();
 
         let mut index = 0;
         let chars: Vec<char> = source.chars().collect();
+        println!("{}", chars[34]);
+        println!("{}", chars[35]);
         while index < chars.len() {
             let current = chars[index];
             match current {
                 '\"' => {
                     index += 1;
-                    let mut value = String::new();
-                    while index < chars.len() && chars[index] != '\"' {
-                        value.push(chars[index]);
-                        index += 1;
-                    }
-                    tokens.push(Token::new(TokenType::StringConst, value));
+                    let (token, index_after_tokenize) = Self::tokenize_string_const(index, &chars)?;
+                    tokens.push_back(token);
+                    index = index_after_tokenize;
                 }
                 current if SYMBOLS.contains(&current) => {
-                    tokens.push(Token::new(TokenType::Symbol, String::from(current)));
+                    tokens.push_back(Token::new(TokenType::Symbol, String::from(current)));
                     index += 1;
                 }
                 current if current.is_alphabetic() => {
-                    let mut value = String::new();
-                    while index < chars.len() && chars[index].is_alphabetic() {
-                        value.push(chars[index]);
-                        if KEYWORDS.contains(&value.as_str()) {
-                            tokens.push(Token::new(TokenType::Keyword, value));
-                            break;
-                        }
-                        index += 1;
-                    }
-                    // tokens.push(Token::new(TokenType::Keyword, value));
+                    let (token, index_after_tokenize) =
+                        Self::tokenize_keyword_and_identifier(index, &chars)?;
+                    tokens.push_back(token);
+                    index = index_after_tokenize;
                 }
                 current if current.is_numeric() => {
-                    let mut value = String::new();
-                    while index < chars.len() && chars[index].is_numeric() {
-                        value.push(chars[index]);
-                        index += 1;
-                    }
-                    tokens.push(Token::new(TokenType::IntConst, value));
+                    let (token, index_after_tokenize) = Self::tokenize_int_const(index, &chars)?;
+                    tokens.push_back(token);
+                    index = index_after_tokenize;
                 }
-                _ => {}
+                _ => index += 1,
             }
-            index += 1;
         }
         Ok(tokens)
+    }
+
+    fn tokenize_string_const(mut index: usize, chars: &Vec<char>) -> Result<(Token, usize)> {
+        let mut value = String::new();
+        while index < chars.len() && chars[index] != '\"' {
+            value.push(chars[index]);
+            println!("{}", chars[index]);
+            index += 1;
+        }
+        index += 1;
+        Ok((Token::new(TokenType::StringConst, value), index))
+    }
+
+    fn tokenize_keyword_and_identifier(
+        mut index: usize,
+        chars: &Vec<char>,
+    ) -> Result<(Token, usize)> {
+        let mut value = String::new();
+        while index < chars.len() && chars[index].is_alphabetic() {
+            value.push(chars[index]);
+            index += 1;
+            if KEYWORDS.contains(&value.as_str()) {
+                return Ok((Token::new(TokenType::Keyword, value), index));
+            }
+        }
+        Ok((Token::new(TokenType::Identifier, value), index))
+    }
+
+    fn tokenize_int_const(mut index: usize, chars: &Vec<char>) -> Result<(Token, usize)> {
+        let mut value = String::new();
+        while index < chars.len() && chars[index].is_numeric() {
+            value.push(chars[index]);
+            index += 1;
+        }
+        Ok((Token::new(TokenType::IntConst, value), index))
     }
 }
 

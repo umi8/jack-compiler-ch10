@@ -67,7 +67,7 @@ impl JackTokenizer {
                     match next_char {
                         "/" => {
                             let end_index = code[current_index + 1..]
-                                .find("\n")
+                                .find('\n')
                                 .map(|i| i + current_index + 1)
                                 .context("map failed.")?;
                             current_index = end_index + 1;

@@ -1,5 +1,7 @@
 use crate::tokenizer::token_type::TokenType;
+use std::fmt::{Debug, Formatter};
 
+#[derive(Debug)]
 pub struct Token {
     token_type: TokenType,
     value: String,

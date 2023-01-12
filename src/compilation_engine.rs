@@ -55,7 +55,7 @@ impl CompilationEngine for XmlCompilationEngine {
 
     /// type = ’int’ | ’char’ | ’boolean’ | className
     fn compile_type(&mut self, writer: &mut impl Write) -> Result<()> {
-        match self.tokenizer.token_type() {
+        match self.tokenizer.token_type()? {
             TokenType::Keyword => match self.tokenizer.key_word()? {
                 KeyWord::Int | KeyWord::Boolean | KeyWord::Char => writeln!(
                     writer,
@@ -80,7 +80,7 @@ impl CompilationEngine for XmlCompilationEngine {
 
         // ’constructor’ | ’function’ | ’method’
         self.tokenizer.advance()?;
-        match self.tokenizer.token_type() {
+        match self.tokenizer.token_type()? {
             TokenType::Keyword => match self.tokenizer.key_word()? {
                 KeyWord::Constructor | KeyWord::Function | KeyWord::Method => writeln!(
                     writer,
@@ -94,7 +94,7 @@ impl CompilationEngine for XmlCompilationEngine {
 
         // ’void’ | type
         self.tokenizer.advance()?;
-        match self.tokenizer.token_type() {
+        match self.tokenizer.token_type()? {
             TokenType::Keyword => match self.tokenizer.key_word()? {
                 KeyWord::Void => writeln!(
                     writer,
@@ -129,7 +129,7 @@ impl CompilationEngine for XmlCompilationEngine {
 impl XmlCompilationEngine {
     fn write_key_word(&mut self, writer: &mut impl Write) -> Result<()> {
         self.tokenizer.advance()?;
-        match self.tokenizer.token_type() {
+        match self.tokenizer.token_type()? {
             TokenType::Keyword => writeln!(
                 writer,
                 "<keyword> {} </keyword>",
@@ -142,7 +142,7 @@ impl XmlCompilationEngine {
 
     fn write_identifier(&mut self, writer: &mut impl Write) -> Result<()> {
         self.tokenizer.advance()?;
-        match self.tokenizer.token_type() {
+        match self.tokenizer.token_type()? {
             TokenType::Identifier => writeln!(
                 writer,
                 "<identifier> {} </identifier>",
@@ -155,7 +155,7 @@ impl XmlCompilationEngine {
 
     fn write_symbol(&mut self, writer: &mut impl Write) -> Result<()> {
         self.tokenizer.advance()?;
-        match self.tokenizer.token_type() {
+        match self.tokenizer.token_type()? {
             TokenType::Symbol => {
                 writeln!(writer, "<symbol> {} </symbol>", self.tokenizer.symbol())?
             }
@@ -182,13 +182,14 @@ mod tests {
         </class>\n"
             .to_string();
 
-        let mut src_file = tempfile::tempfile().unwrap();
+        let mut src_file = tempfile::NamedTempFile::new().unwrap();
         writeln!(src_file, "class Main {{").unwrap();
         writeln!(src_file, "}}").unwrap();
         src_file.seek(SeekFrom::Start(0)).unwrap();
+        let path = src_file.path();
         let mut output = Vec::<u8>::new();
 
-        let tokenizer = JackTokenizer::new(src_file).unwrap();
+        let tokenizer = JackTokenizer::new(path).unwrap();
         let mut engine = XmlCompilationEngine::new(tokenizer);
 
         let result = engine.compile_class(&mut output);
@@ -208,12 +209,13 @@ mod tests {
         </classVarDec>\n"
             .to_string();
 
-        let mut src_file = tempfile::tempfile().unwrap();
+        let mut src_file = tempfile::NamedTempFile::new().unwrap();
         writeln!(src_file, "static boolean test;").unwrap();
         src_file.seek(SeekFrom::Start(0)).unwrap();
+        let path = src_file.path();
         let mut output = Vec::<u8>::new();
 
-        let tokenizer = JackTokenizer::new(src_file).unwrap();
+        let tokenizer = JackTokenizer::new(path).unwrap();
         let mut engine = XmlCompilationEngine::new(tokenizer);
 
         let result = engine.compile_class_var_dec(&mut output);
@@ -236,12 +238,13 @@ mod tests {
         </subroutineDec>\n"
             .to_string();
 
-        let mut src_file = tempfile::tempfile().unwrap();
+        let mut src_file = tempfile::NamedTempFile::new().unwrap();
         writeln!(src_file, "function void main()").unwrap();
         src_file.seek(SeekFrom::Start(0)).unwrap();
+        let path = src_file.path();
         let mut output = Vec::<u8>::new();
 
-        let tokenizer = JackTokenizer::new(src_file).unwrap();
+        let tokenizer = JackTokenizer::new(path).unwrap();
         let mut engine = XmlCompilationEngine::new(tokenizer);
 
         let result = engine.compile_subroutine_dec(&mut output);

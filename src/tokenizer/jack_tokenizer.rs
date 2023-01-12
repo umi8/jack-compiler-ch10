@@ -4,7 +4,7 @@ use std::path::Path;
 
 use anyhow::{bail, Context, Error, Result};
 
-use crate::tokenizer::key_word::KEYWORDS;
+use crate::tokenizer::key_word::{KeyWord, KEYWORDS};
 use crate::tokenizer::token::Token;
 use crate::tokenizer::token_type::TokenType;
 
@@ -38,20 +38,28 @@ impl JackTokenizer {
         Ok(())
     }
 
-    pub fn peek(&mut self) -> Result<&Token> {
-        if self.has_more_tokens()? {
-            self.tokens.get(0).context("get failed.")
-        } else {
-            bail!(Error::msg("get failed."))
-        }
-    }
-
     pub fn token_type(&mut self) -> Result<&TokenType> {
         Ok(self.current_token.token_type())
     }
 
-    pub fn value(&mut self) -> Result<&String> {
-        Ok(self.current_token.value())
+    pub fn key_word(&self) -> Result<KeyWord> {
+        KeyWord::from(self.current_token.value().as_str())
+    }
+
+    pub fn symbol(&self) -> char {
+        self.current_token.value().parse().unwrap()
+    }
+
+    pub fn identifier(&self) -> &String {
+        self.current_token.value()
+    }
+
+    pub fn int_val(&self) -> Result<usize> {
+        Ok(self.current_token.value().parse::<usize>()?)
+    }
+
+    pub fn string_val(&self) -> &String {
+        self.current_token.value()
     }
 
     fn remove_comments(code: String) -> Result<String> {

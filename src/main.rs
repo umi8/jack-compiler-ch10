@@ -6,6 +6,7 @@ use clap::Parser;
 use crate::tokenizer::token_type::TokenType;
 use tokenizer::jack_tokenizer::JackTokenizer;
 
+mod compilation_engine;
 mod tokenizer;
 
 /// Jack Compiler
@@ -25,24 +26,27 @@ fn main() -> Result<()> {
         jack_tokenizer.advance()?;
         match jack_tokenizer.token_type()? {
             TokenType::Keyword => {
-                println!("<keyword> {} </keyword>", jack_tokenizer.value()?)
+                println!(
+                    "<keyword> {} </keyword>",
+                    jack_tokenizer.key_word()?.to_string().to_lowercase()
+                )
             }
             TokenType::Symbol => {
-                println!("<symbol> {} </symbol>", jack_tokenizer.value()?)
+                println!("<symbol> {} </symbol>", jack_tokenizer.symbol())
             }
             TokenType::Identifier => {
-                println!("<identifier> {} </identifier>", jack_tokenizer.value()?)
+                println!("<identifier> {} </identifier>", jack_tokenizer.identifier())
             }
             TokenType::IntConst => {
                 println!(
                     "<integerConstant> {} </integerConstant>",
-                    jack_tokenizer.value()?
+                    jack_tokenizer.int_val()?
                 )
             }
             TokenType::StringConst => {
                 println!(
                     "<stringConstant> {} </stringConstant>",
-                    jack_tokenizer.value()?
+                    jack_tokenizer.string_val()
                 )
             }
         }

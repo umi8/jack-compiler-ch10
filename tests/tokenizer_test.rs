@@ -46,24 +46,23 @@ fn test_diff(expected_file_path: &Path, src_file_path: &Path) {
             TokenType::Keyword => writeln!(
                 actual,
                 "<keyword> {} </keyword>",
-                jack_tokenizer.value().unwrap()
+                jack_tokenizer
+                    .key_word()
+                    .unwrap()
+                    .to_string()
+                    .to_lowercase()
             )
             .unwrap(),
             TokenType::Symbol => {
-                let symbol = match jack_tokenizer.value().unwrap().as_str() {
-                    "<" => "&lt;",
-                    ">" => "&gt;",
-                    "&" => "&amp;",
+                let symbol = match jack_tokenizer.symbol() {
+                    '<' => "&lt;",
+                    '>' => "&gt;",
+                    '&' => "&amp;",
                     _ => "",
                 };
 
                 if symbol == "" {
-                    writeln!(
-                        actual,
-                        "<symbol> {} </symbol>",
-                        jack_tokenizer.value().unwrap()
-                    )
-                    .unwrap()
+                    writeln!(actual, "<symbol> {} </symbol>", jack_tokenizer.symbol()).unwrap()
                 } else {
                     writeln!(actual, "<symbol> {} </symbol>", symbol).unwrap()
                 }
@@ -71,19 +70,19 @@ fn test_diff(expected_file_path: &Path, src_file_path: &Path) {
             TokenType::Identifier => writeln!(
                 actual,
                 "<identifier> {} </identifier>",
-                jack_tokenizer.value().unwrap()
+                jack_tokenizer.identifier()
             )
             .unwrap(),
             TokenType::IntConst => writeln!(
                 actual,
                 "<integerConstant> {} </integerConstant>",
-                jack_tokenizer.value().unwrap()
+                jack_tokenizer.int_val().unwrap()
             )
             .unwrap(),
             TokenType::StringConst => writeln!(
                 actual,
                 "<stringConstant> {} </stringConstant>",
-                jack_tokenizer.value().unwrap()
+                jack_tokenizer.string_val()
             )
             .unwrap(),
         }

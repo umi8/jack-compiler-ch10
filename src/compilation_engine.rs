@@ -25,10 +25,8 @@ impl CompilationEngine for XmlCompilationEngine {
     /// class = ’class’ className ’{’ classVarDec* subroutineDec* ’}’
     fn compile_class(&mut self, writer: &mut impl Write) -> Result<()> {
         writeln!(writer, "<class>")?;
-
         // ’class’
         self.write_key_word(vec![KeyWord::Class], writer)?;
-
         // className
         self.write_identifier(writer)?;
         // {

@@ -1,12 +1,10 @@
-use std::fs::File;
 use std::path::PathBuf;
 
 use anyhow::Result;
 use clap::Parser;
 
-use tokenizer::jack_tokenizer::JackTokenizer;
-
 use crate::tokenizer::token_type::TokenType;
+use tokenizer::jack_tokenizer::JackTokenizer;
 
 mod compilation_engine;
 mod tokenizer;
@@ -22,12 +20,11 @@ struct Args {
 
 fn main() -> Result<()> {
     let args = Args::parse();
-    let file = File::open(args.path.as_path())?;
-    let mut jack_tokenizer = JackTokenizer::new(file)?;
+    let mut jack_tokenizer = JackTokenizer::new(args.path.as_path())?;
 
     while jack_tokenizer.has_more_tokens()? {
         jack_tokenizer.advance()?;
-        match jack_tokenizer.token_type() {
+        match jack_tokenizer.token_type()? {
             TokenType::Keyword => {
                 println!(
                     "<keyword> {} </keyword>",
@@ -54,6 +51,5 @@ fn main() -> Result<()> {
             }
         }
     }
-
     Ok(())
 }

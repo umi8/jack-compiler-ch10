@@ -3,7 +3,7 @@ use std::fmt::Formatter;
 
 use anyhow::{bail, Error, Result};
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum KeyWord {
     Class,
     Method,

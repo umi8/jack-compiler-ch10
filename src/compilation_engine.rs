@@ -25,8 +25,10 @@ impl CompilationEngine for XmlCompilationEngine {
     /// class = ’class’ className ’{’ classVarDec* subroutineDec* ’}’
     fn compile_class(&mut self, writer: &mut impl Write) -> Result<()> {
         writeln!(writer, "<class>")?;
-        // class
-        self.write_key_word(writer)?;
+
+        // ’class’
+        self.write_key_word(vec![KeyWord::Class], writer)?;
+
         // className
         self.write_identifier(writer)?;
         // {
@@ -41,7 +43,7 @@ impl CompilationEngine for XmlCompilationEngine {
     fn compile_class_var_dec(&mut self, writer: &mut impl Write) -> Result<()> {
         writeln!(writer, "<classVarDec>")?;
         // static or field
-        self.write_key_word(writer)?;
+        self.write_key_word(vec![KeyWord::Static, KeyWord::Field], writer)?;
         // type
         self.tokenizer.advance()?;
         self.compile_type(writer)?;
@@ -127,14 +129,20 @@ impl CompilationEngine for XmlCompilationEngine {
 }
 
 impl XmlCompilationEngine {
-    fn write_key_word(&mut self, writer: &mut impl Write) -> Result<()> {
+    fn write_key_word(&mut self, targets: Vec<KeyWord>, writer: &mut impl Write) -> Result<()> {
         self.tokenizer.advance()?;
         match self.tokenizer.token_type()? {
-            TokenType::Keyword => writeln!(
-                writer,
-                "<keyword> {} </keyword>",
-                self.tokenizer.key_word()?.to_string().to_lowercase()
-            )?,
+            TokenType::Keyword => {
+                let keyword = self.tokenizer.key_word()?;
+                match keyword {
+                    keyword if targets.contains(&keyword) => writeln!(
+                        writer,
+                        "<keyword> {} </keyword>",
+                        self.tokenizer.key_word()?.to_string().to_lowercase()
+                    )?,
+                    _ => bail!(Error::msg("Illegal token")),
+                }
+            }
             _ => bail!(Error::msg("Illegal token")),
         }
         Ok(())

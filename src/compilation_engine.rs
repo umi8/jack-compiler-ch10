@@ -24,7 +24,8 @@ impl CompilationEngine for XmlCompilationEngine {
 
     /// class = ’class’ className ’{’ classVarDec* subroutineDec* ’}’
     fn compile_class(&mut self, writer: &mut impl Write) -> Result<()> {
-        writeln!(writer, "<class>")?;
+        // <class>
+        self.write_start_tag("class", writer)?;
         // ’class’
         self.write_key_word(vec![KeyWord::Class], writer)?;
         // className
@@ -33,7 +34,8 @@ impl CompilationEngine for XmlCompilationEngine {
         self.write_symbol(writer)?;
         // }
         self.write_symbol(writer)?;
-        writeln!(writer, "</class>")?;
+        // </class>
+        self.write_end_tag("class", writer)?;
         Ok(())
     }
 
@@ -167,6 +169,16 @@ impl XmlCompilationEngine {
             }
             _ => bail!(Error::msg("Illegal token")),
         }
+        Ok(())
+    }
+
+    fn write_start_tag(&mut self, element: &str, writer: &mut impl Write) -> Result<()> {
+        writeln!(writer, "<{}>", element)?;
+        Ok(())
+    }
+
+    fn write_end_tag(&mut self, element: &str, writer: &mut impl Write) -> Result<()> {
+        writeln!(writer, "</{}>", element)?;
         Ok(())
     }
 }

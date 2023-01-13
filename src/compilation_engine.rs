@@ -32,7 +32,16 @@ impl CompilationEngine for XmlCompilationEngine {
         self.write_identifier(writer)?;
         // {
         self.write_symbol(writer)?;
-        // TODO: classVarDec*
+        // classVarDec*
+        loop {
+            if !KeyWord::exists(self.tokenizer.peek()?.value()) {
+                break;
+            }
+            match KeyWord::from(self.tokenizer.peek()?.value())? {
+                KeyWord::Static | KeyWord::Field => self.compile_class_var_dec(writer)?,
+                _ => break,
+            }
+        }
         // TODO: subroutineDec*
         // }
         self.write_symbol(writer)?;
@@ -204,6 +213,47 @@ mod tests {
 
         let mut src_file = tempfile::NamedTempFile::new().unwrap();
         writeln!(src_file, "class Main {{").unwrap();
+        writeln!(src_file, "}}").unwrap();
+        src_file.seek(SeekFrom::Start(0)).unwrap();
+        let path = src_file.path();
+        let mut output = Vec::<u8>::new();
+
+        let tokenizer = JackTokenizer::new(path).unwrap();
+        let mut engine = XmlCompilationEngine::new(tokenizer);
+
+        let result = engine.compile_class(&mut output);
+        let actual = String::from_utf8(output).unwrap();
+
+        assert!(result.is_ok());
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn can_compile_class_with_classvardec() {
+        let expected = "<class>\n\
+        <keyword> class </keyword>\n\
+        <identifier> Main </identifier>\n\
+        <symbol> { </symbol>\n\
+        <classVarDec>\n\
+        <keyword> static </keyword>\n\
+        <keyword> boolean </keyword>\n\
+        <identifier> test </identifier>\n\
+        <symbol> ; </symbol>\n\
+        </classVarDec>\n\
+        <classVarDec>\n\
+        <keyword> static </keyword>\n\
+        <keyword> boolean </keyword>\n\
+        <identifier> test </identifier>\n\
+        <symbol> ; </symbol>\n\
+        </classVarDec>\n\
+        <symbol> } </symbol>\n\
+        </class>\n"
+            .to_string();
+
+        let mut src_file = tempfile::NamedTempFile::new().unwrap();
+        writeln!(src_file, "class Main {{").unwrap();
+        writeln!(src_file, "static boolean test;").unwrap();
+        writeln!(src_file, "static boolean test;").unwrap();
         writeln!(src_file, "}}").unwrap();
         src_file.seek(SeekFrom::Start(0)).unwrap();
         let path = src_file.path();

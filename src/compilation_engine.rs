@@ -42,7 +42,18 @@ impl CompilationEngine for XmlCompilationEngine {
                 _ => break,
             }
         }
-        // TODO: subroutineDec*
+        // subroutineDec*
+        loop {
+            if !KeyWord::exists(self.tokenizer.peek()?.value()) {
+                break;
+            }
+            match KeyWord::from(self.tokenizer.peek()?.value())? {
+                KeyWord::Constructor | KeyWord::Function | KeyWord::Method => {
+                    self.compile_subroutine_dec(writer)?
+                }
+                _ => break,
+            }
+        }
         // }
         self.write_symbol(writer)?;
         // </class>
@@ -254,6 +265,53 @@ mod tests {
         writeln!(src_file, "class Main {{").unwrap();
         writeln!(src_file, "static boolean test;").unwrap();
         writeln!(src_file, "static boolean test;").unwrap();
+        writeln!(src_file, "}}").unwrap();
+        src_file.seek(SeekFrom::Start(0)).unwrap();
+        let path = src_file.path();
+        let mut output = Vec::<u8>::new();
+
+        let tokenizer = JackTokenizer::new(path).unwrap();
+        let mut engine = XmlCompilationEngine::new(tokenizer);
+
+        let result = engine.compile_class(&mut output);
+        let actual = String::from_utf8(output).unwrap();
+
+        assert!(result.is_ok());
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn can_compile_class_with_subroutinedec() {
+        let expected = "<class>\n\
+        <keyword> class </keyword>\n\
+        <identifier> Main </identifier>\n\
+        <symbol> { </symbol>\n\
+        <subroutineDec>\n\
+        <keyword> function </keyword>\n\
+        <keyword> void </keyword>\n\
+        <identifier> main </identifier>\n\
+        <symbol> ( </symbol>\n\
+        <parameterList>\n\
+        </parameterList>\n\
+        <symbol> ) </symbol>\n\
+        </subroutineDec>\n\
+        <subroutineDec>\n\
+        <keyword> function </keyword>\n\
+        <keyword> void </keyword>\n\
+        <identifier> main </identifier>\n\
+        <symbol> ( </symbol>\n\
+        <parameterList>\n\
+        </parameterList>\n\
+        <symbol> ) </symbol>\n\
+        </subroutineDec>\n\
+        <symbol> } </symbol>\n\
+        </class>\n"
+            .to_string();
+
+        let mut src_file = tempfile::NamedTempFile::new().unwrap();
+        writeln!(src_file, "class Main {{").unwrap();
+        writeln!(src_file, "function void main()").unwrap();
+        writeln!(src_file, "function void main()").unwrap();
         writeln!(src_file, "}}").unwrap();
         src_file.seek(SeekFrom::Start(0)).unwrap();
         let path = src_file.path();

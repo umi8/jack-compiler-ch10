@@ -61,6 +61,10 @@ impl KeyWord {
             _ => bail!(Error::msg(format!("Illegal Argument Error: {}", key_word))),
         }
     }
+
+    pub fn exists(value: &str) -> bool {
+        KeyWord::from(value).is_ok()
+    }
 }
 
 pub const KEYWORDS: [&str; 21] = [

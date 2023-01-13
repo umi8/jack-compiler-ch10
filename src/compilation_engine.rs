@@ -32,6 +32,8 @@ impl CompilationEngine for XmlCompilationEngine {
         self.write_identifier(writer)?;
         // {
         self.write_symbol(writer)?;
+        // TODO: classVarDec*
+        // TODO: subroutineDec*
         // }
         self.write_symbol(writer)?;
         // </class>

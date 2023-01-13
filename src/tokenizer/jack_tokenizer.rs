@@ -38,6 +38,14 @@ impl JackTokenizer {
         Ok(())
     }
 
+    pub fn peek(&mut self) -> Result<&Token> {
+        if self.has_more_tokens()? {
+            self.tokens.get(0).context("get failed.")
+        } else {
+            bail!(Error::msg("get failed."))
+        }
+    }
+
     pub fn token_type(&mut self) -> Result<&TokenType> {
         Ok(self.current_token.token_type())
     }

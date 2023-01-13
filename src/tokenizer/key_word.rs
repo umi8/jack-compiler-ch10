@@ -3,7 +3,7 @@ use std::fmt::Formatter;
 
 use anyhow::{bail, Error, Result};
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum KeyWord {
     Class,
     Method,
@@ -60,6 +60,10 @@ impl KeyWord {
             "return" => Ok(KeyWord::Return),
             _ => bail!(Error::msg(format!("Illegal Argument Error: {}", key_word))),
         }
+    }
+
+    pub fn exists(value: &str) -> bool {
+        KeyWord::from(value).is_ok()
     }
 }
 

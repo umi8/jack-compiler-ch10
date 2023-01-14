@@ -71,6 +71,7 @@ impl CompilationEngine for XmlCompilationEngine {
         self.compile_type(writer)?;
         // varName
         self.write_identifier(writer)?;
+        // TODO: (’,’ varName)*
         // ;
         self.write_symbol(writer)?;
         // </classVarDec>

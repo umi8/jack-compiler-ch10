@@ -63,36 +63,29 @@ impl CompilationEngine for XmlCompilationEngine {
 
     /// classVarDec = (’static’ | ’field’) type varName (’,’ varName)* ’;’
     fn compile_class_var_dec(&mut self, writer: &mut impl Write) -> Result<()> {
-        writeln!(writer, "<classVarDec>")?;
+        // <classVarDec>
+        self.write_start_tag("classVarDec", writer)?;
         // static or field
         self.write_key_word(vec![KeyWord::Static, KeyWord::Field], writer)?;
         // type
-        self.tokenizer.advance()?;
         self.compile_type(writer)?;
         // varName
         self.write_identifier(writer)?;
+        // TODO: (’,’ varName)*
         // ;
         self.write_symbol(writer)?;
-        writeln!(writer, "</classVarDec>")?;
+        // </classVarDec>
+        self.write_end_tag("classVarDec", writer)?;
         Ok(())
     }
 
     /// type = ’int’ | ’char’ | ’boolean’ | className
     fn compile_type(&mut self, writer: &mut impl Write) -> Result<()> {
-        match self.tokenizer.token_type()? {
-            TokenType::Keyword => match self.tokenizer.key_word()? {
-                KeyWord::Int | KeyWord::Boolean | KeyWord::Char => writeln!(
-                    writer,
-                    "<keyword> {} </keyword>",
-                    self.tokenizer.key_word()?.to_string().to_lowercase()
-                )?,
-                _ => bail!(Error::msg("Illegal token")),
-            },
-            TokenType::Identifier => writeln!(
-                writer,
-                "<identifier> {} </identifier>",
-                self.tokenizer.identifier()
-            )?,
+        match self.tokenizer.peek()?.token_type() {
+            TokenType::Keyword => {
+                self.write_key_word(vec![KeyWord::Int, KeyWord::Boolean, KeyWord::Char], writer)?
+            }
+            TokenType::Identifier => self.write_identifier(writer)?,
             _ => bail!(Error::msg("Illegal token")),
         }
         Ok(())
@@ -100,52 +93,33 @@ impl CompilationEngine for XmlCompilationEngine {
 
     /// subroutineDec =(’constructor’ | ’function’ | ’method’) (’void’ | type) subroutineName ’(’ parameterList ’)’ subroutineBody
     fn compile_subroutine_dec(&mut self, writer: &mut impl Write) -> Result<()> {
-        writeln!(writer, "<subroutineDec>")?;
-
+        // <subroutineDec>
+        self.write_start_tag("subroutineDec", writer)?;
         // ’constructor’ | ’function’ | ’method’
-        self.tokenizer.advance()?;
-        match self.tokenizer.token_type()? {
-            TokenType::Keyword => match self.tokenizer.key_word()? {
-                KeyWord::Constructor | KeyWord::Function | KeyWord::Method => writeln!(
-                    writer,
-                    "<keyword> {} </keyword>",
-                    self.tokenizer.key_word()?.to_string().to_lowercase()
-                )?,
-                _ => bail!(Error::msg("Illegal token")),
-            },
-            _ => bail!(Error::msg("Illegal token")),
-        }
-
+        self.write_key_word(
+            vec![KeyWord::Constructor, KeyWord::Function, KeyWord::Method],
+            writer,
+        )?;
         // ’void’ | type
-        self.tokenizer.advance()?;
-        match self.tokenizer.token_type()? {
-            TokenType::Keyword => match self.tokenizer.key_word()? {
-                KeyWord::Void => writeln!(
-                    writer,
-                    "<keyword> {} </keyword>",
-                    self.tokenizer.key_word()?.to_string().to_lowercase()
-                )?,
-                _ => bail!(Error::msg("Illegal token")),
-            },
-            _ => self.compile_type(writer)?,
+        if self.tokenizer.peek()?.token_type() == &TokenType::Keyword
+            && KeyWord::from(self.tokenizer.peek()?.value())? == KeyWord::Void
+        {
+            self.write_key_word(vec![KeyWord::Void], writer)?
+        } else {
+            self.compile_type(writer)?
         }
-
         // subroutineName
         self.write_identifier(writer)?;
-
         // ’(’
         self.write_symbol(writer)?;
-
         // TODO: parameterList
-        writeln!(writer, "<parameterList>")?;
-        writeln!(writer, "</parameterList>")?;
-
+        self.write_start_tag("parameterList", writer)?;
+        self.write_end_tag("parameterList", writer)?;
         // ’)’
         self.write_symbol(writer)?;
-
         // TODO: subroutineBody
-
-        writeln!(writer, "</subroutineDec>")?;
+        // </subroutineDec>
+        self.write_end_tag("subroutineDec", writer)?;
         Ok(())
     }
 }
@@ -207,9 +181,9 @@ impl XmlCompilationEngine {
 
 #[cfg(test)]
 mod tests {
-    use crate::compilation::compilation_engine::{CompilationEngine, XmlCompilationEngine};
     use std::io::{Seek, SeekFrom, Write};
 
+    use crate::compilation::compilation_engine::{CompilationEngine, XmlCompilationEngine};
     use crate::JackTokenizer;
 
     #[test]
@@ -297,8 +271,8 @@ mod tests {
         </subroutineDec>\n\
         <subroutineDec>\n\
         <keyword> function </keyword>\n\
-        <keyword> void </keyword>\n\
-        <identifier> main </identifier>\n\
+        <keyword> boolean </keyword>\n\
+        <identifier> isSomething </identifier>\n\
         <symbol> ( </symbol>\n\
         <parameterList>\n\
         </parameterList>\n\
@@ -311,7 +285,7 @@ mod tests {
         let mut src_file = tempfile::NamedTempFile::new().unwrap();
         writeln!(src_file, "class Main {{").unwrap();
         writeln!(src_file, "function void main()").unwrap();
-        writeln!(src_file, "function void main()").unwrap();
+        writeln!(src_file, "function boolean isSomething()").unwrap();
         writeln!(src_file, "}}").unwrap();
         src_file.seek(SeekFrom::Start(0)).unwrap();
         let path = src_file.path();

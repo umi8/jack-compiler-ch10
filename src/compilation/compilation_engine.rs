@@ -101,18 +101,13 @@ impl CompilationEngine for XmlCompilationEngine {
             writer,
         )?;
         // ’void’ | type
-        match self.tokenizer.token_type()? {
-            TokenType::Keyword => match self.tokenizer.key_word()? {
-                KeyWord::Void => writeln!(
-                    writer,
-                    "<keyword> {} </keyword>",
-                    self.tokenizer.key_word()?.to_string().to_lowercase()
-                )?,
-                _ => bail!(Error::msg("Illegal token")),
-            },
-            _ => self.compile_type(writer)?,
+        if self.tokenizer.peek()?.token_type() == &TokenType::Keyword
+            && KeyWord::from(self.tokenizer.peek()?.value())? == KeyWord::Void
+        {
+            self.write_key_word(vec![KeyWord::Void], writer)?
+        } else {
+            self.compile_type(writer)?
         }
-
         // subroutineName
         self.write_identifier(writer)?;
         // ’(’
@@ -186,9 +181,9 @@ impl XmlCompilationEngine {
 
 #[cfg(test)]
 mod tests {
-    use crate::compilation::compilation_engine::{CompilationEngine, XmlCompilationEngine};
     use std::io::{Seek, SeekFrom, Write};
 
+    use crate::compilation::compilation_engine::{CompilationEngine, XmlCompilationEngine};
     use crate::JackTokenizer;
 
     #[test]

@@ -113,8 +113,8 @@ impl CompilationEngine for XmlCompilationEngine {
         // ’(’
         self.write_symbol(writer)?;
         // TODO: parameterList
-        writeln!(writer, "<parameterList>")?;
-        writeln!(writer, "</parameterList>")?;
+        self.write_start_tag("parameterList", writer)?;
+        self.write_end_tag("parameterList", writer)?;
         // ’)’
         self.write_symbol(writer)?;
         // TODO: subroutineBody

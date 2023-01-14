@@ -207,9 +207,9 @@ impl XmlCompilationEngine {
 
 #[cfg(test)]
 mod tests {
+    use crate::compilation::compilation_engine::{CompilationEngine, XmlCompilationEngine};
     use std::io::{Seek, SeekFrom, Write};
 
-    use crate::compilation_engine::{CompilationEngine, XmlCompilationEngine};
     use crate::JackTokenizer;
 
     #[test]

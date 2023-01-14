@@ -63,7 +63,8 @@ impl CompilationEngine for XmlCompilationEngine {
 
     /// classVarDec = (’static’ | ’field’) type varName (’,’ varName)* ’;’
     fn compile_class_var_dec(&mut self, writer: &mut impl Write) -> Result<()> {
-        writeln!(writer, "<classVarDec>")?;
+        // <classVarDec>
+        self.write_start_tag("classVarDec", writer)?;
         // static or field
         self.write_key_word(vec![KeyWord::Static, KeyWord::Field], writer)?;
         // type
@@ -73,7 +74,8 @@ impl CompilationEngine for XmlCompilationEngine {
         self.write_identifier(writer)?;
         // ;
         self.write_symbol(writer)?;
-        writeln!(writer, "</classVarDec>")?;
+        // </classVarDec>
+        self.write_end_tag("classVarDec", writer)?;
         Ok(())
     }
 
@@ -100,22 +102,10 @@ impl CompilationEngine for XmlCompilationEngine {
 
     /// subroutineDec =(’constructor’ | ’function’ | ’method’) (’void’ | type) subroutineName ’(’ parameterList ’)’ subroutineBody
     fn compile_subroutine_dec(&mut self, writer: &mut impl Write) -> Result<()> {
-        writeln!(writer, "<subroutineDec>")?;
-
+        // <subroutineDec>
+        self.write_start_tag("subroutineDec", writer)?;
         // ’constructor’ | ’function’ | ’method’
-        self.tokenizer.advance()?;
-        match self.tokenizer.token_type()? {
-            TokenType::Keyword => match self.tokenizer.key_word()? {
-                KeyWord::Constructor | KeyWord::Function | KeyWord::Method => writeln!(
-                    writer,
-                    "<keyword> {} </keyword>",
-                    self.tokenizer.key_word()?.to_string().to_lowercase()
-                )?,
-                _ => bail!(Error::msg("Illegal token")),
-            },
-            _ => bail!(Error::msg("Illegal token")),
-        }
-
+        self.write_key_word(vec![KeyWord::Constructor, KeyWord::Function, KeyWord::Method], writer)?;
         // ’void’ | type
         self.tokenizer.advance()?;
         match self.tokenizer.token_type()? {
@@ -132,20 +122,16 @@ impl CompilationEngine for XmlCompilationEngine {
 
         // subroutineName
         self.write_identifier(writer)?;
-
         // ’(’
         self.write_symbol(writer)?;
-
         // TODO: parameterList
         writeln!(writer, "<parameterList>")?;
         writeln!(writer, "</parameterList>")?;
-
         // ’)’
         self.write_symbol(writer)?;
-
         // TODO: subroutineBody
-
-        writeln!(writer, "</subroutineDec>")?;
+        // </subroutineDec>
+        self.write_end_tag("subroutineDec", writer)?;
         Ok(())
     }
 }

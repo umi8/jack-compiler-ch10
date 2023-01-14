@@ -6,8 +6,8 @@ use clap::Parser;
 use crate::tokenizer::token_type::TokenType;
 use tokenizer::jack_tokenizer::JackTokenizer;
 
-mod tokenizer;
 mod compilation;
+mod tokenizer;
 
 /// Jack Compiler
 #[derive(Parser)]

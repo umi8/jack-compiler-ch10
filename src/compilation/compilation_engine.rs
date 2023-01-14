@@ -68,7 +68,6 @@ impl CompilationEngine for XmlCompilationEngine {
         // static or field
         self.write_key_word(vec![KeyWord::Static, KeyWord::Field], writer)?;
         // type
-        self.tokenizer.advance()?;
         self.compile_type(writer)?;
         // varName
         self.write_identifier(writer)?;
@@ -81,20 +80,11 @@ impl CompilationEngine for XmlCompilationEngine {
 
     /// type = ’int’ | ’char’ | ’boolean’ | className
     fn compile_type(&mut self, writer: &mut impl Write) -> Result<()> {
-        match self.tokenizer.token_type()? {
-            TokenType::Keyword => match self.tokenizer.key_word()? {
-                KeyWord::Int | KeyWord::Boolean | KeyWord::Char => writeln!(
-                    writer,
-                    "<keyword> {} </keyword>",
-                    self.tokenizer.key_word()?.to_string().to_lowercase()
-                )?,
-                _ => bail!(Error::msg("Illegal token")),
-            },
-            TokenType::Identifier => writeln!(
-                writer,
-                "<identifier> {} </identifier>",
-                self.tokenizer.identifier()
-            )?,
+        match self.tokenizer.peek()?.token_type() {
+            TokenType::Keyword => {
+                self.write_key_word(vec![KeyWord::Int, KeyWord::Boolean, KeyWord::Char], writer)?
+            }
+            TokenType::Identifier => self.write_identifier(writer)?,
             _ => bail!(Error::msg("Illegal token")),
         }
         Ok(())
@@ -105,9 +95,11 @@ impl CompilationEngine for XmlCompilationEngine {
         // <subroutineDec>
         self.write_start_tag("subroutineDec", writer)?;
         // ’constructor’ | ’function’ | ’method’
-        self.write_key_word(vec![KeyWord::Constructor, KeyWord::Function, KeyWord::Method], writer)?;
+        self.write_key_word(
+            vec![KeyWord::Constructor, KeyWord::Function, KeyWord::Method],
+            writer,
+        )?;
         // ’void’ | type
-        self.tokenizer.advance()?;
         match self.tokenizer.token_type()? {
             TokenType::Keyword => match self.tokenizer.key_word()? {
                 KeyWord::Void => writeln!(

@@ -271,8 +271,8 @@ mod tests {
         </subroutineDec>\n\
         <subroutineDec>\n\
         <keyword> function </keyword>\n\
-        <keyword> void </keyword>\n\
-        <identifier> main </identifier>\n\
+        <keyword> boolean </keyword>\n\
+        <identifier> isSomething </identifier>\n\
         <symbol> ( </symbol>\n\
         <parameterList>\n\
         </parameterList>\n\
@@ -285,7 +285,7 @@ mod tests {
         let mut src_file = tempfile::NamedTempFile::new().unwrap();
         writeln!(src_file, "class Main {{").unwrap();
         writeln!(src_file, "function void main()").unwrap();
-        writeln!(src_file, "function void main()").unwrap();
+        writeln!(src_file, "function boolean isSomething()").unwrap();
         writeln!(src_file, "}}").unwrap();
         src_file.seek(SeekFrom::Start(0)).unwrap();
         let path = src_file.path();

@@ -194,7 +194,17 @@ impl CompilationEngine for XmlCompilationEngine {
 
     /// statement = letStatement | ifStatement | whileStatement | doStatement | returnStatement
     fn compile_statement(&mut self, writer: &mut impl Write) -> Result<()> {
-        self.compile_let_statement(writer)?;
+        match self.tokenizer.token_type()? {
+            TokenType::Keyword => match self.tokenizer.key_word()? {
+                KeyWord::Let => self.compile_let_statement(writer)?,
+                KeyWord::If => todo!("ifStatement"),
+                KeyWord::While => todo!("whileStatement"),
+                KeyWord::Do => todo!("doStatement"),
+                KeyWord::Return => todo!("returnStatement"),
+                _ => {}
+            },
+            _ => {}
+        }
         Ok(())
     }
 

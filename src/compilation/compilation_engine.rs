@@ -234,7 +234,17 @@ impl CompilationEngine for XmlCompilationEngine {
         self.write_start_tag("expression", writer)?;
         // term
         self.compile_term(writer)?;
-        // TODO: (op term)*
+        // (op term)*
+        loop {
+            if self.tokenizer.peek()?.is_op() {
+                // op
+                self.write_symbol(writer)?;
+                // term
+                self.compile_term(writer)?;
+            } else {
+                break;
+            }
+        }
         // </expression>
         self.write_end_tag("expression", writer)?;
         Ok(())

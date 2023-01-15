@@ -234,15 +234,9 @@ impl CompilationEngine for XmlCompilationEngine {
     fn compile_term(&mut self, writer: &mut impl Write) -> Result<()> {
         // <term>
         self.write_start_tag("term", writer)?;
-        self.tokenizer.advance()?;
-        match self.tokenizer.token_type()? {
-            TokenType::StringConst => writeln!(
-                writer,
-                "<stringConstant> {} </stringConstant>",
-                self.tokenizer.string_val()
-            )?,
-            _ => bail!(Error::msg("Illegal token")),
-        }
+
+        self.write_string_constant(writer)?;
+
         // </term>
         self.write_end_tag("term", writer)?;
         Ok(())
@@ -319,6 +313,19 @@ impl XmlCompilationEngine {
             TokenType::Symbol => {
                 writeln!(writer, "<symbol> {} </symbol>", self.tokenizer.symbol())?
             }
+            _ => bail!(Error::msg("Illegal token")),
+        }
+        Ok(())
+    }
+
+    fn write_string_constant(&mut self, writer: &mut impl Write) -> Result<()> {
+        self.tokenizer.advance()?;
+        match self.tokenizer.token_type()? {
+            TokenType::StringConst => writeln!(
+                writer,
+                "<stringConstant> {} </stringConstant>",
+                self.tokenizer.string_val()
+            )?,
             _ => bail!(Error::msg("Illegal token")),
         }
         Ok(())

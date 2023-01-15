@@ -356,7 +356,18 @@ impl XmlCompilationEngine {
         self.tokenizer.advance()?;
         match self.tokenizer.token_type()? {
             TokenType::Symbol => {
-                writeln!(writer, "<symbol> {} </symbol>", self.tokenizer.symbol())?
+                let symbol = match self.tokenizer.symbol() {
+                    '<' => "&lt;",
+                    '>' => "&gt;",
+                    '&' => "&amp;",
+                    _ => "",
+                };
+
+                if symbol == "" {
+                    writeln!(writer, "<symbol> {} </symbol>", self.tokenizer.symbol())?
+                } else {
+                    writeln!(writer, "<symbol> {} </symbol>", symbol)?
+                }
             }
             _ => bail!(Error::msg("Illegal token")),
         }

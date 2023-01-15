@@ -18,6 +18,7 @@ trait CompilationEngine {
     fn compile_let_statement(&mut self, writer: &mut impl Write) -> Result<()>;
     fn compile_while_statement(&mut self, writer: &mut impl Write) -> Result<()>;
     fn compile_do_statement(&mut self, writer: &mut impl Write) -> Result<()>;
+    fn compile_return_statement(&mut self, writer: &mut impl Write) -> Result<()>;
     fn compile_expression(&mut self, writer: &mut impl Write) -> Result<()>;
     fn compile_term(&mut self, writer: &mut impl Write) -> Result<()>;
     fn compile_subroutine_call(&mut self, writer: &mut impl Write) -> Result<()>;
@@ -215,7 +216,7 @@ impl CompilationEngine for XmlCompilationEngine {
             KeyWord::If => todo!("ifStatement"),
             KeyWord::While => self.compile_while_statement(writer)?,
             KeyWord::Do => self.compile_do_statement(writer)?,
-            KeyWord::Return => todo!("returnStatement"),
+            KeyWord::Return => self.compile_return_statement(writer)?,
             _ => {}
         }
         Ok(())
@@ -284,6 +285,23 @@ impl CompilationEngine for XmlCompilationEngine {
         self.write_symbol(writer)?;
         // </doStatement>
         self.write_end_tag("doStatement", writer)?;
+        Ok(())
+    }
+
+    /// returnStatement = ’return’ expression? ’;’
+    fn compile_return_statement(&mut self, writer: &mut impl Write) -> Result<()> {
+        // <returnStatement>
+        self.write_start_tag("returnStatement", writer)?;
+        // return
+        self.write_key_word(vec![KeyWord::Return], writer)?;
+        // expression?
+        if self.tokenizer.peek()?.value() != ";" {
+            self.compile_expression(writer)?;
+        }
+        // ’;’
+        self.write_symbol(writer)?;
+        // </returnStatement>
+        self.write_end_tag("returnStatement", writer)?;
         Ok(())
     }
 
@@ -894,6 +912,36 @@ mod tests {
         let mut engine = XmlCompilationEngine::new(tokenizer);
 
         let result = engine.compile_do_statement(&mut output);
+        let actual = String::from_utf8(output).unwrap();
+
+        assert!(result.is_ok());
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn can_compile_return_statement() {
+        let expected = "\
+            <returnStatement>\n\
+            <keyword> return </keyword>\n\
+            <expression>\n\
+            <term>\n\
+            <identifier> x </identifier>\n\
+            </term>\n\
+            </expression>\n\
+            <symbol> ; </symbol>\n\
+            </returnStatement>\n"
+            .to_string();
+
+        let mut src_file = tempfile::NamedTempFile::new().unwrap();
+        writeln!(src_file, "return x;").unwrap();
+        src_file.seek(SeekFrom::Start(0)).unwrap();
+        let path = src_file.path();
+        let mut output = Vec::<u8>::new();
+
+        let tokenizer = JackTokenizer::new(path).unwrap();
+        let mut engine = XmlCompilationEngine::new(tokenizer);
+
+        let result = engine.compile_return_statement(&mut output);
         let actual = String::from_utf8(output).unwrap();
 
         assert!(result.is_ok());

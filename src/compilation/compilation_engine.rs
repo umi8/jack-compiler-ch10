@@ -216,7 +216,15 @@ impl CompilationEngine for XmlCompilationEngine {
         self.write_key_word(vec![KeyWord::Let], writer)?;
         // varName
         self.write_identifier(writer)?;
-        // TODO: (’[’ expression ’]’)?
+        // (’[’ expression ’]’)?
+        if self.tokenizer.peek()?.value() == "[" {
+            // ’[’
+            self.write_symbol(writer)?;
+            // expression
+            self.compile_expression(writer)?;
+            // ’]’
+            self.write_symbol(writer)?;
+        }
         // ’=’
         self.write_symbol(writer)?;
         // expression

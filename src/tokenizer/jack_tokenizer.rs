@@ -46,6 +46,14 @@ impl JackTokenizer {
         }
     }
 
+    pub fn peek_second(&mut self) -> Result<&Token> {
+        if self.tokens.len() >= 2 {
+            self.tokens.get(1).context("get failed.")
+        } else {
+            bail!(Error::msg("get failed."))
+        }
+    }
+
     pub fn token_type(&mut self) -> Result<&TokenType> {
         Ok(self.current_token.token_type())
     }

@@ -17,6 +17,7 @@ trait CompilationEngine {
     fn compile_statement(&mut self, writer: &mut impl Write) -> Result<()>;
     fn compile_let_statement(&mut self, writer: &mut impl Write) -> Result<()>;
     fn compile_while_statement(&mut self, writer: &mut impl Write) -> Result<()>;
+    fn compile_do_statement(&mut self, writer: &mut impl Write) -> Result<()>;
     fn compile_expression(&mut self, writer: &mut impl Write) -> Result<()>;
     fn compile_term(&mut self, writer: &mut impl Write) -> Result<()>;
     fn compile_subroutine_call(&mut self, writer: &mut impl Write) -> Result<()>;
@@ -213,7 +214,7 @@ impl CompilationEngine for XmlCompilationEngine {
             KeyWord::Let => self.compile_let_statement(writer)?,
             KeyWord::If => todo!("ifStatement"),
             KeyWord::While => self.compile_while_statement(writer)?,
-            KeyWord::Do => todo!("doStatement"),
+            KeyWord::Do => self.compile_do_statement(writer)?,
             KeyWord::Return => todo!("returnStatement"),
             _ => {}
         }
@@ -268,6 +269,21 @@ impl CompilationEngine for XmlCompilationEngine {
         self.write_symbol(writer)?;
         // </whileStatement>
         self.write_end_tag("whileStatement", writer)?;
+        Ok(())
+    }
+
+    /// doStatement = ’do’ subroutineCall ’;’
+    fn compile_do_statement(&mut self, writer: &mut impl Write) -> Result<()> {
+        // <doStatement>
+        self.write_start_tag("doStatement", writer)?;
+        // do
+        self.write_key_word(vec![KeyWord::Do], writer)?;
+        // subroutineCall
+        self.compile_subroutine_call(writer)?;
+        // ’;’
+        self.write_symbol(writer)?;
+        // </doStatement>
+        self.write_end_tag("doStatement", writer)?;
         Ok(())
     }
 
@@ -845,6 +861,43 @@ mod tests {
 
         assert_eq!(expected, actual);
         assert!(result.is_ok());
+    }
+
+    #[test]
+    fn can_compile_do_statement() {
+        let expected = "\
+            <doStatement>\n\
+            <keyword> do </keyword>\n\
+            <identifier> Output </identifier>\n\
+            <symbol> . </symbol>\n\
+            <identifier> printString </identifier>\n\
+            <symbol> ( </symbol>\n\
+            <expressionList>\n\
+            <expression>\n\
+            <term>\n\
+            <stringConstant> THE AVERAGE IS:  </stringConstant>\n\
+            </term>\n\
+            </expression>\n\
+            </expressionList>\n\
+            <symbol> ) </symbol>\n\
+            <symbol> ; </symbol>\n\
+            </doStatement>\n"
+            .to_string();
+
+        let mut src_file = tempfile::NamedTempFile::new().unwrap();
+        writeln!(src_file, "do Output.printString(\"THE AVERAGE IS: \");").unwrap();
+        src_file.seek(SeekFrom::Start(0)).unwrap();
+        let path = src_file.path();
+        let mut output = Vec::<u8>::new();
+
+        let tokenizer = JackTokenizer::new(path).unwrap();
+        let mut engine = XmlCompilationEngine::new(tokenizer);
+
+        let result = engine.compile_do_statement(&mut output);
+        let actual = String::from_utf8(output).unwrap();
+
+        assert!(result.is_ok());
+        assert_eq!(expected, actual);
     }
 
     #[test]

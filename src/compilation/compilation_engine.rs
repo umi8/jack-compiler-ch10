@@ -11,6 +11,8 @@ trait CompilationEngine {
     fn compile_class_var_dec(&mut self, writer: &mut impl Write) -> Result<()>;
     fn compile_type(&mut self, writer: &mut impl Write) -> Result<()>;
     fn compile_subroutine_dec(&mut self, writer: &mut impl Write) -> Result<()>;
+    fn compile_subroutine_body(&mut self, writer: &mut impl Write) -> Result<()>;
+    fn compile_var_dec(&mut self, writer: &mut impl Write) -> Result<()>;
 }
 
 struct XmlCompilationEngine {
@@ -120,6 +122,60 @@ impl CompilationEngine for XmlCompilationEngine {
         // TODO: subroutineBody
         // </subroutineDec>
         self.write_end_tag("subroutineDec", writer)?;
+        Ok(())
+    }
+
+    /// subroutineBody = ’{’ varDec* statements ’}’
+    fn compile_subroutine_body(&mut self, writer: &mut impl Write) -> Result<()> {
+        // <subroutineBody>
+        self.write_start_tag("subroutineBody", writer)?;
+        // ’{’
+        self.write_symbol(writer)?;
+        // varDec*
+        loop {
+            if !KeyWord::exists(self.tokenizer.peek()?.value()) {
+                break;
+            }
+            match KeyWord::from(self.tokenizer.peek()?.value())? {
+                KeyWord::Var => self.compile_var_dec(writer)?,
+                _ => break,
+            }
+        }
+        // TODO: statements
+        // ’}’
+        self.write_symbol(writer)?;
+        // </subroutineBody>
+        self.write_end_tag("subroutineBody", writer)?;
+        Ok(())
+    }
+
+    /// varDec = ’var’ type varName (’,’ varName)* ’;’
+    fn compile_var_dec(&mut self, writer: &mut impl Write) -> Result<()> {
+        // <varDec>
+        self.write_start_tag("varDec", writer)?;
+        // ’var’
+        self.write_key_word(vec![KeyWord::Var], writer)?;
+        // type
+        self.compile_type(writer)?;
+        // varName
+        self.write_identifier(writer)?;
+        // (’,’ varName)*
+        loop {
+            if self.tokenizer.peek()?.token_type() == &TokenType::Symbol
+                && self.tokenizer.peek()?.value() == ","
+            {
+                // ','
+                self.write_symbol(writer)?;
+                // varName
+                self.write_identifier(writer)?;
+            } else {
+                break;
+            }
+        }
+        // ’;’
+        self.write_symbol(writer)?;
+        // </varDec>
+        self.write_end_tag("varDec", writer)?;
         Ok(())
     }
 }
@@ -350,6 +406,76 @@ mod tests {
         let mut engine = XmlCompilationEngine::new(tokenizer);
 
         let result = engine.compile_subroutine_dec(&mut output);
+        let actual = String::from_utf8(output).unwrap();
+
+        assert!(result.is_ok());
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn can_compile_subroutine_body() {
+        let expected = "\
+        <subroutineBody>\n\
+        <symbol> { </symbol>\n\
+        <varDec>\n\
+        <keyword> var </keyword>\n\
+        <identifier> Array </identifier>\n\
+        <identifier> a </identifier>\n\
+        <symbol> ; </symbol>\n\
+        </varDec>\n\
+        <varDec>\n\
+        <keyword> var </keyword>\n\
+        <keyword> int </keyword>\n\
+        <identifier> length </identifier>\n\
+        <symbol> ; </symbol>\n\
+        </varDec>\n\
+        <symbol> } </symbol>\n\
+        </subroutineBody>\n"
+            .to_string();
+
+        let mut src_file = tempfile::NamedTempFile::new().unwrap();
+        writeln!(src_file, "{{").unwrap();
+        writeln!(src_file, "var Array a;").unwrap();
+        writeln!(src_file, "var int length;").unwrap();
+        writeln!(src_file, "}}").unwrap();
+        src_file.seek(SeekFrom::Start(0)).unwrap();
+        let path = src_file.path();
+        let mut output = Vec::<u8>::new();
+
+        let tokenizer = JackTokenizer::new(path).unwrap();
+        let mut engine = XmlCompilationEngine::new(tokenizer);
+
+        let result = engine.compile_subroutine_body(&mut output);
+        let actual = String::from_utf8(output).unwrap();
+
+        assert!(result.is_ok());
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn can_compile_var_dec() {
+        let expected = "<varDec>\n\
+        <keyword> var </keyword>\n\
+        <keyword> int </keyword>\n\
+        <identifier> i </identifier>\n\
+        <symbol> , </symbol>\n\
+        <identifier> j </identifier>\n\
+        <symbol> , </symbol>\n\
+        <identifier> sum </identifier>\n\
+        <symbol> ; </symbol>\n\
+        </varDec>\n"
+            .to_string();
+
+        let mut src_file = tempfile::NamedTempFile::new().unwrap();
+        writeln!(src_file, "var int i, j, sum;").unwrap();
+        src_file.seek(SeekFrom::Start(0)).unwrap();
+        let path = src_file.path();
+        let mut output = Vec::<u8>::new();
+
+        let tokenizer = JackTokenizer::new(path).unwrap();
+        let mut engine = XmlCompilationEngine::new(tokenizer);
+
+        let result = engine.compile_var_dec(&mut output);
         let actual = String::from_utf8(output).unwrap();
 
         assert!(result.is_ok());

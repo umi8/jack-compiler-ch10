@@ -13,6 +13,13 @@ trait CompilationEngine {
     fn compile_subroutine_dec(&mut self, writer: &mut impl Write) -> Result<()>;
     fn compile_subroutine_body(&mut self, writer: &mut impl Write) -> Result<()>;
     fn compile_var_dec(&mut self, writer: &mut impl Write) -> Result<()>;
+    fn compile_statements(&mut self, writer: &mut impl Write) -> Result<()>;
+    fn compile_statement(&mut self, writer: &mut impl Write) -> Result<()>;
+    fn compile_let_statement(&mut self, writer: &mut impl Write) -> Result<()>;
+    fn compile_expression(&mut self, writer: &mut impl Write) -> Result<()>;
+    fn compile_term(&mut self, writer: &mut impl Write) -> Result<()>;
+    fn compile_subroutine_call(&mut self, writer: &mut impl Write) -> Result<()>;
+    fn compile_expression_list(&mut self, writer: &mut impl Write) -> Result<()>;
 }
 
 struct XmlCompilationEngine {
@@ -178,6 +185,128 @@ impl CompilationEngine for XmlCompilationEngine {
         self.write_end_tag("varDec", writer)?;
         Ok(())
     }
+
+    /// statements = statement*
+    fn compile_statements(&mut self, writer: &mut impl Write) -> Result<()> {
+        self.compile_statement(writer)?;
+        Ok(())
+    }
+
+    /// statement = letStatement | ifStatement | whileStatement | doStatement | returnStatement
+    fn compile_statement(&mut self, writer: &mut impl Write) -> Result<()> {
+        self.compile_let_statement(writer)?;
+        Ok(())
+    }
+
+    /// letStatement = ’let’ varName (’[’ expression ’]’)? ’=’ expression ’;’
+    fn compile_let_statement(&mut self, writer: &mut impl Write) -> Result<()> {
+        // <letStatement>
+        self.write_start_tag("letStatement", writer)?;
+        // let
+        self.write_key_word(vec![KeyWord::Let], writer)?;
+        // varName
+        self.write_identifier(writer)?;
+        // TODO: (’[’ expression ’]’)?
+        // ’=’
+        self.write_symbol(writer)?;
+        // expression
+        self.compile_expression(writer)?;
+        // ’;’
+        self.write_symbol(writer)?;
+        // </letStatement>
+        self.write_end_tag("letStatement", writer)?;
+        Ok(())
+    }
+
+    /// expression = term (op term)*
+    fn compile_expression(&mut self, writer: &mut impl Write) -> Result<()> {
+        // <expression>
+        self.write_start_tag("expression", writer)?;
+        // term
+        self.compile_term(writer)?;
+        // TODO: (op term)*
+        // </expression>
+        self.write_end_tag("expression", writer)?;
+        Ok(())
+    }
+
+    /// term = integerConstant | stringConstant | keywordConstant | varName | varName ’[’ expression ’]’ | subroutineCall | ’(’ expression ’)’ | unaryOp term
+    fn compile_term(&mut self, writer: &mut impl Write) -> Result<()> {
+        // <term>
+        self.write_start_tag("term", writer)?;
+
+        match self.tokenizer.peek()?.token_type() {
+            TokenType::Keyword => {
+                todo!("keywordConstant")
+            }
+            TokenType::Symbol => match self.tokenizer.peek()?.value().as_str() {
+                "(" => {
+                    // '('
+                    self.write_symbol(writer)?;
+                    // expression
+                    self.compile_expression(writer)?;
+                    // ')'
+                    self.write_symbol(writer)?;
+                }
+                "-" | "~" => {
+                    todo!("unaryOp");
+                    // TODO: call term
+                }
+                _ => {}
+            },
+            TokenType::Identifier => {
+                match self.tokenizer.peek_second()?.value().as_str() {
+                    "[" => {
+                        // '['
+                        self.write_symbol(writer)?;
+                        // expression
+                        self.compile_expression(writer)?;
+                        // ']'
+                        self.write_symbol(writer)?;
+                    }
+                    "." | "(" => self.compile_subroutine_call(writer)?,
+                    _ => self.write_identifier(writer)?,
+                }
+            }
+            TokenType::IntConst => self.write_integer_constant(writer)?,
+            TokenType::StringConst => self.write_string_constant(writer)?,
+        }
+
+        // </term>
+        self.write_end_tag("term", writer)?;
+        Ok(())
+    }
+
+    /// subroutineCall = subroutineName ’(’ expressionList ’)’ | (className | varName) ’.’ subroutineName ’(’ expressionList ’)’
+    fn compile_subroutine_call(&mut self, writer: &mut impl Write) -> Result<()> {
+        // subroutineName | (className | varName)
+        self.write_identifier(writer)?;
+        if self.tokenizer.peek()?.value() == "." {
+            // ’.’
+            self.write_symbol(writer)?;
+            // subroutineName
+            self.write_identifier(writer)?;
+        }
+        // ’(’
+        self.write_symbol(writer)?;
+        // expressionList
+        self.compile_expression_list(writer)?;
+        // ’)’
+        self.write_symbol(writer)?;
+        Ok(())
+    }
+
+    /// expressionList = (expression (’,’ expression)* )?
+    fn compile_expression_list(&mut self, writer: &mut impl Write) -> Result<()> {
+        // <expressionList>
+        self.write_start_tag("expressionList", writer)?;
+
+        self.compile_expression(writer)?;
+
+        // </expressionList>
+        self.write_end_tag("expressionList", writer)?;
+        Ok(())
+    }
 }
 
 impl XmlCompilationEngine {
@@ -219,6 +348,32 @@ impl XmlCompilationEngine {
             TokenType::Symbol => {
                 writeln!(writer, "<symbol> {} </symbol>", self.tokenizer.symbol())?
             }
+            _ => bail!(Error::msg("Illegal token")),
+        }
+        Ok(())
+    }
+
+    fn write_string_constant(&mut self, writer: &mut impl Write) -> Result<()> {
+        self.tokenizer.advance()?;
+        match self.tokenizer.token_type()? {
+            TokenType::StringConst => writeln!(
+                writer,
+                "<stringConstant> {} </stringConstant>",
+                self.tokenizer.string_val()
+            )?,
+            _ => bail!(Error::msg("Illegal token")),
+        }
+        Ok(())
+    }
+
+    fn write_integer_constant(&mut self, writer: &mut impl Write) -> Result<()> {
+        self.tokenizer.advance()?;
+        match self.tokenizer.token_type()? {
+            TokenType::StringConst => writeln!(
+                writer,
+                "<integerConstant> {} </integerConstant>",
+                self.tokenizer.int_val()?
+            )?,
             _ => bail!(Error::msg("Illegal token")),
         }
         Ok(())
@@ -476,6 +631,120 @@ mod tests {
         let mut engine = XmlCompilationEngine::new(tokenizer);
 
         let result = engine.compile_var_dec(&mut output);
+        let actual = String::from_utf8(output).unwrap();
+
+        assert!(result.is_ok());
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn can_compile_let_statement() {
+        let expected = "<letStatement>\n\
+            <keyword> let </keyword>\n\
+            <identifier> length </identifier>\n\
+            <symbol> = </symbol>\n\
+            <expression>\n\
+            <term>\n\
+            <identifier> Keyboard </identifier>\n\
+            <symbol> . </symbol>\n\
+            <identifier> readInt </identifier>\n\
+            <symbol> ( </symbol>\n\
+            <expressionList>\n\
+            <expression>\n\
+            <term>\n\
+            <stringConstant> HOW MANY NUMBERS?  </stringConstant>\n\
+            </term>\n\
+            </expression>\n\
+            </expressionList>\n\
+            <symbol> ) </symbol>\n\
+            </term>\n\
+            </expression>\n\
+            <symbol> ; </symbol>\n\
+            </letStatement>\n"
+            .to_string();
+
+        let mut src_file = tempfile::NamedTempFile::new().unwrap();
+        writeln!(
+            src_file,
+            "let length = Keyboard.readInt(\"HOW MANY NUMBERS? \");"
+        )
+        .unwrap();
+        src_file.seek(SeekFrom::Start(0)).unwrap();
+        let path = src_file.path();
+        let mut output = Vec::<u8>::new();
+
+        let tokenizer = JackTokenizer::new(path).unwrap();
+        let mut engine = XmlCompilationEngine::new(tokenizer);
+
+        let result = engine.compile_let_statement(&mut output);
+        let actual = String::from_utf8(output).unwrap();
+
+        assert!(result.is_ok());
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn can_compile_term() {
+        let expected = "\
+            <term>\n\
+            <identifier> Keyboard </identifier>\n\
+            <symbol> . </symbol>\n\
+            <identifier> readInt </identifier>\n\
+            <symbol> ( </symbol>\n\
+            <expressionList>\n\
+            <expression>\n\
+            <term>\n\
+            <stringConstant> HOW MANY NUMBERS?  </stringConstant>\n\
+            </term>\n\
+            </expression>\n\
+            </expressionList>\n\
+            <symbol> ) </symbol>\n\
+            </term>\n"
+            .to_string();
+
+        let mut src_file = tempfile::NamedTempFile::new().unwrap();
+        writeln!(src_file, "Keyboard.readInt(\"HOW MANY NUMBERS? \")").unwrap();
+        src_file.seek(SeekFrom::Start(0)).unwrap();
+        let path = src_file.path();
+        let mut output = Vec::<u8>::new();
+
+        let tokenizer = JackTokenizer::new(path).unwrap();
+        let mut engine = XmlCompilationEngine::new(tokenizer);
+
+        let result = engine.compile_term(&mut output);
+        let actual = String::from_utf8(output).unwrap();
+
+        assert!(result.is_ok());
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn can_compile_subroutine_call() {
+        let expected = "\
+            <identifier> Keyboard </identifier>\n\
+            <symbol> . </symbol>\n\
+            <identifier> readInt </identifier>\n\
+            <symbol> ( </symbol>\n\
+            <expressionList>\n\
+            <expression>\n\
+            <term>\n\
+            <stringConstant> HOW MANY NUMBERS?  </stringConstant>\n\
+            </term>\n\
+            </expression>\n\
+            </expressionList>\n\
+            <symbol> ) </symbol>\n"
+            .to_string();
+
+        let mut src_file = tempfile::NamedTempFile::new().unwrap();
+        writeln!(src_file, "Keyboard.readInt(\"HOW MANY NUMBERS? \")").unwrap();
+        src_file.seek(SeekFrom::Start(0)).unwrap();
+        let path = src_file.path();
+        let mut output = Vec::<u8>::new();
+
+        let tokenizer = JackTokenizer::new(path).unwrap();
+        let mut engine = XmlCompilationEngine::new(tokenizer);
+
+        let result = engine.compile_subroutine_call(&mut output);
         let actual = String::from_utf8(output).unwrap();
 
         assert!(result.is_ok());

@@ -30,9 +30,9 @@ impl Token {
     }
 
     pub fn is_op(&self) -> bool {
-        match self.value.as_str() {
-            "+" | "-" | "*" | "/" | "&" | "|" | "<" | ">" | "=" => true,
-            _ => false,
-        }
+        matches!(
+            self.value.as_str(),
+            "+" | "-" | "*" | "/" | "&" | "|" | "<" | ">" | "="
+        )
     }
 }

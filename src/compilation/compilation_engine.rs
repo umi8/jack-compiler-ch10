@@ -416,7 +416,7 @@ impl XmlCompilationEngine {
                     _ => "",
                 };
 
-                if symbol == "" {
+                if symbol.is_empty() {
                     writeln!(writer, "<symbol> {} </symbol>", self.tokenizer.symbol())?
                 } else {
                     writeln!(writer, "<symbol> {} </symbol>", symbol)?

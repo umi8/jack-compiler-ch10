@@ -235,7 +235,42 @@ impl CompilationEngine for XmlCompilationEngine {
         // <term>
         self.write_start_tag("term", writer)?;
 
-        self.write_string_constant(writer)?;
+        match self.tokenizer.peek()?.token_type() {
+            TokenType::Keyword => {
+                todo!("keywordConstant")
+            }
+            TokenType::Symbol => match self.tokenizer.peek()?.value().as_str() {
+                "(" => {
+                    // '('
+                    self.write_symbol(writer)?;
+                    // expression
+                    self.compile_expression(writer)?;
+                    // ')'
+                    self.write_symbol(writer)?;
+                }
+                "-" | "~" => {
+                    todo!("unaryOp");
+                    // TODO: call term
+                }
+                _ => {}
+            },
+            TokenType::Identifier => {
+                match self.tokenizer.peek_second()?.value().as_str() {
+                    "[" => {
+                        // '['
+                        self.write_symbol(writer)?;
+                        // expression
+                        self.compile_expression(writer)?;
+                        // ']'
+                        self.write_symbol(writer)?;
+                    }
+                    "." | "(" => self.compile_subroutine_call(writer)?,
+                    _ => self.write_identifier(writer)?,
+                }
+            }
+            TokenType::IntConst => self.write_integer_constant(writer)?,
+            TokenType::StringConst => self.write_string_constant(writer)?,
+        }
 
         // </term>
         self.write_end_tag("term", writer)?;
@@ -325,6 +360,19 @@ impl XmlCompilationEngine {
                 writer,
                 "<stringConstant> {} </stringConstant>",
                 self.tokenizer.string_val()
+            )?,
+            _ => bail!(Error::msg("Illegal token")),
+        }
+        Ok(())
+    }
+
+    fn write_integer_constant(&mut self, writer: &mut impl Write) -> Result<()> {
+        self.tokenizer.advance()?;
+        match self.tokenizer.token_type()? {
+            TokenType::StringConst => writeln!(
+                writer,
+                "<integerConstant> {} </integerConstant>",
+                self.tokenizer.int_val()?
             )?,
             _ => bail!(Error::msg("Illegal token")),
         }
@@ -629,6 +677,41 @@ mod tests {
         let mut engine = XmlCompilationEngine::new(tokenizer);
 
         let result = engine.compile_let_statement(&mut output);
+        let actual = String::from_utf8(output).unwrap();
+
+        assert!(result.is_ok());
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn can_compile_term() {
+        let expected = "\
+            <term>\n\
+            <identifier> Keyboard </identifier>\n\
+            <symbol> . </symbol>\n\
+            <identifier> readInt </identifier>\n\
+            <symbol> ( </symbol>\n\
+            <expressionList>\n\
+            <expression>\n\
+            <term>\n\
+            <stringConstant> HOW MANY NUMBERS?  </stringConstant>\n\
+            </term>\n\
+            </expression>\n\
+            </expressionList>\n\
+            <symbol> ) </symbol>\n\
+            </term>\n"
+            .to_string();
+
+        let mut src_file = tempfile::NamedTempFile::new().unwrap();
+        writeln!(src_file, "Keyboard.readInt(\"HOW MANY NUMBERS? \")").unwrap();
+        src_file.seek(SeekFrom::Start(0)).unwrap();
+        let path = src_file.path();
+        let mut output = Vec::<u8>::new();
+
+        let tokenizer = JackTokenizer::new(path).unwrap();
+        let mut engine = XmlCompilationEngine::new(tokenizer);
+
+        let result = engine.compile_term(&mut output);
         let actual = String::from_utf8(output).unwrap();
 
         assert!(result.is_ok());

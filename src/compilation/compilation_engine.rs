@@ -188,7 +188,21 @@ impl CompilationEngine for XmlCompilationEngine {
 
     /// statements = statement*
     fn compile_statements(&mut self, writer: &mut impl Write) -> Result<()> {
-        self.compile_statement(writer)?;
+        // <statements>
+        self.write_start_tag("statements", writer)?;
+        loop {
+            if !KeyWord::exists(self.tokenizer.peek()?.value()) {
+                break;
+            }
+            match KeyWord::from(self.tokenizer.peek()?.value())? {
+                KeyWord::Let | KeyWord::If | KeyWord::While | KeyWord::Do | KeyWord::Return => {
+                    self.compile_statement(writer)?;
+                }
+                _ => break,
+            }
+        }
+        // </statements>
+        self.write_end_tag("statements", writer)?;
         Ok(())
     }
 

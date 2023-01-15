@@ -390,7 +390,7 @@ impl XmlCompilationEngine {
     fn write_integer_constant(&mut self, writer: &mut impl Write) -> Result<()> {
         self.tokenizer.advance()?;
         match self.tokenizer.token_type()? {
-            TokenType::StringConst => writeln!(
+            TokenType::IntConst => writeln!(
                 writer,
                 "<integerConstant> {} </integerConstant>",
                 self.tokenizer.int_val()?

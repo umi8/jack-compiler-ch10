@@ -16,6 +16,7 @@ trait CompilationEngine {
     fn compile_statements(&mut self, writer: &mut impl Write) -> Result<()>;
     fn compile_statement(&mut self, writer: &mut impl Write) -> Result<()>;
     fn compile_let_statement(&mut self, writer: &mut impl Write) -> Result<()>;
+    fn compile_while_statement(&mut self, writer: &mut impl Write) -> Result<()>;
     fn compile_expression(&mut self, writer: &mut impl Write) -> Result<()>;
     fn compile_term(&mut self, writer: &mut impl Write) -> Result<()>;
     fn compile_subroutine_call(&mut self, writer: &mut impl Write) -> Result<()>;
@@ -208,15 +209,12 @@ impl CompilationEngine for XmlCompilationEngine {
 
     /// statement = letStatement | ifStatement | whileStatement | doStatement | returnStatement
     fn compile_statement(&mut self, writer: &mut impl Write) -> Result<()> {
-        match self.tokenizer.token_type()? {
-            TokenType::Keyword => match self.tokenizer.key_word()? {
-                KeyWord::Let => self.compile_let_statement(writer)?,
-                KeyWord::If => todo!("ifStatement"),
-                KeyWord::While => todo!("whileStatement"),
-                KeyWord::Do => todo!("doStatement"),
-                KeyWord::Return => todo!("returnStatement"),
-                _ => {}
-            },
+        match KeyWord::from(self.tokenizer.peek()?.value())? {
+            KeyWord::Let => self.compile_let_statement(writer)?,
+            KeyWord::If => todo!("ifStatement"),
+            KeyWord::While => self.compile_while_statement(writer)?,
+            KeyWord::Do => todo!("doStatement"),
+            KeyWord::Return => todo!("returnStatement"),
             _ => {}
         }
         Ok(())
@@ -247,6 +245,29 @@ impl CompilationEngine for XmlCompilationEngine {
         self.write_symbol(writer)?;
         // </letStatement>
         self.write_end_tag("letStatement", writer)?;
+        Ok(())
+    }
+
+    /// whileStatement = ’while’ ’(’ expression ’)’ ’{’ statements ’}’
+    fn compile_while_statement(&mut self, writer: &mut impl Write) -> Result<()> {
+        // <whileStatement>
+        self.write_start_tag("whileStatement", writer)?;
+        // while
+        self.write_key_word(vec![KeyWord::While], writer)?;
+        // ’(’
+        self.write_symbol(writer)?;
+        // expression
+        self.compile_expression(writer)?;
+        // ’)’
+        self.write_symbol(writer)?;
+        // ’{’
+        self.write_symbol(writer)?;
+        // statements
+        self.compile_statements(writer)?;
+        // ’}’
+        self.write_symbol(writer)?;
+        // </whileStatement>
+        self.write_end_tag("whileStatement", writer)?;
         Ok(())
     }
 
@@ -734,6 +755,96 @@ mod tests {
 
         assert!(result.is_ok());
         assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn can_compile_while_statement() {
+        let expected = "\
+            <whileStatement>\n\
+            <keyword> while </keyword>\n\
+            <symbol> ( </symbol>\n\
+            <expression>\n\
+            <term>\n\
+            <identifier> i </identifier>\n\
+            </term>\n\
+            <symbol> &lt; </symbol>\n\
+            <term>\n\
+            <identifier> length </identifier>\n\
+            </term>\n\
+            </expression>\n\
+            <symbol> ) </symbol>\n\
+            <symbol> { </symbol>\n\
+            <statements>\n\
+            <letStatement>\n\
+            <keyword> let </keyword>\n\
+            <identifier> a </identifier>\n\
+            <symbol> [ </symbol>\n\
+            <expression>\n\
+            <term>\n\
+            <identifier> i </identifier>\n\
+            </term>\n\
+            </expression>\n\
+            <symbol> ] </symbol>\n\
+            <symbol> = </symbol>\n\
+            <expression>\n\
+            <term>\n\
+            <identifier> Keyboard </identifier>\n\
+            <symbol> . </symbol>\n\
+            <identifier> readInt </identifier>\n\
+            <symbol> ( </symbol>\n\
+            <expressionList>\n\
+            <expression>\n\
+            <term>\n\
+            <stringConstant> ENTER THE NEXT NUMBER:  </stringConstant>\n\
+            </term>\n\
+            </expression>\n\
+            </expressionList>\n\
+            <symbol> ) </symbol>\n\
+            </term>\n\
+            </expression>\n\
+            <symbol> ; </symbol>\n\
+            </letStatement>\n\
+            <letStatement>\n\
+            <keyword> let </keyword>\n\
+            <identifier> i </identifier>\n\
+            <symbol> = </symbol>\n\
+            <expression>\n\
+            <term>\n\
+            <identifier> i </identifier>\n\
+            </term>\n\
+            <symbol> + </symbol>\n\
+            <term>\n\
+            <integerConstant> 1 </integerConstant>\n\
+            </term>\n\
+            </expression>\n\
+            <symbol> ; </symbol>\n\
+            </letStatement>\n\
+            </statements>\n\
+            <symbol> } </symbol>\n\
+            </whileStatement>\n"
+            .to_string();
+
+        let mut src_file = tempfile::NamedTempFile::new().unwrap();
+        writeln!(src_file, "while (i < length) {{").unwrap();
+        writeln!(
+            src_file,
+            "let a[i] = Keyboard.readInt(\"ENTER THE NEXT NUMBER: \");"
+        )
+        .unwrap();
+        writeln!(src_file, "let i = i + 1;").unwrap();
+        writeln!(src_file, "}}").unwrap();
+        src_file.seek(SeekFrom::Start(0)).unwrap();
+        let path = src_file.path();
+        let mut output = Vec::<u8>::new();
+
+        let tokenizer = JackTokenizer::new(path).unwrap();
+        let mut engine = XmlCompilationEngine::new(tokenizer);
+
+        let result = engine.compile_while_statement(&mut output);
+        let actual = String::from_utf8(output).unwrap();
+
+        assert_eq!(expected, actual);
+        assert!(result.is_ok());
     }
 
     #[test]

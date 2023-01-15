@@ -28,4 +28,11 @@ impl Token {
     pub fn value(&self) -> &String {
         &self.value
     }
+
+    pub fn is_op(&self) -> bool {
+        match self.value.as_str() {
+            "+" | "-" | "*" | "/" | "&" | "|" | "<" | ">" | "=" => true,
+            _ => false,
+        }
+    }
 }

@@ -408,9 +408,11 @@ impl CompilationEngine for XmlCompilationEngine {
     fn compile_expression_list(&mut self, writer: &mut impl Write) -> Result<()> {
         // <expressionList>
         self.write_start_tag("expressionList", writer)?;
-
-        self.compile_expression(writer)?;
-
+        // (expression)?
+        if self.tokenizer.is_term()? {
+            self.compile_expression(writer)?;
+            // TODO: (’,’ expression)*
+        }
         // </expressionList>
         self.write_end_tag("expressionList", writer)?;
         Ok(())

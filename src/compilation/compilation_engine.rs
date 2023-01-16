@@ -6,7 +6,7 @@ use crate::tokenizer::jack_tokenizer::JackTokenizer;
 use crate::tokenizer::key_word::KeyWord;
 use crate::tokenizer::token_type::TokenType;
 
-trait CompilationEngine {
+pub trait CompilationEngine {
     fn new(tokenizer: JackTokenizer) -> Self;
     fn compile_class(&mut self, writer: &mut impl Write) -> Result<()>;
     fn compile_class_var_dec(&mut self, writer: &mut impl Write) -> Result<()>;
@@ -26,7 +26,7 @@ trait CompilationEngine {
     fn compile_expression_list(&mut self, writer: &mut impl Write) -> Result<()>;
 }
 
-struct XmlCompilationEngine {
+pub struct XmlCompilationEngine {
     tokenizer: JackTokenizer,
     indent: String,
 }

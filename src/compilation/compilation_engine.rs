@@ -363,6 +363,8 @@ impl CompilationEngine for XmlCompilationEngine {
             TokenType::Identifier => {
                 match self.tokenizer.peek_second()?.value().as_str() {
                     "[" => {
+                        // varName
+                        self.write_identifier(writer)?;
                         // '['
                         self.write_symbol(writer)?;
                         // expression

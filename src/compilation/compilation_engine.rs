@@ -2,8 +2,9 @@ use std::io::Write;
 
 use anyhow::{bail, Error, Result};
 
+use crate::tokenizer::jack_tokenizer::JackTokenizer;
 use crate::tokenizer::key_word::KeyWord;
-use crate::{JackTokenizer, TokenType};
+use crate::tokenizer::token_type::TokenType;
 
 trait CompilationEngine {
     fn new(tokenizer: JackTokenizer) -> Self;
@@ -529,7 +530,7 @@ mod tests {
     use std::io::{Seek, SeekFrom, Write};
 
     use crate::compilation::compilation_engine::{CompilationEngine, XmlCompilationEngine};
-    use crate::JackTokenizer;
+    use crate::tokenizer::jack_tokenizer::JackTokenizer;
 
     #[test]
     fn can_compile_class() {

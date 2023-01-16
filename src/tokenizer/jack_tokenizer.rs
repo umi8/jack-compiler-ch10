@@ -78,6 +78,17 @@ impl JackTokenizer {
         self.current_token.value()
     }
 
+    pub fn is_term(&mut self) -> Result<bool> {
+        match self.peek()?.token_type() {
+            TokenType::Keyword => Ok(self.peek()?.is_keyword_constant()?),
+            TokenType::Symbol => match self.peek_second()?.value().as_str() {
+                "(" | "-" | "+" => Ok(true),
+                _ => Ok(false),
+            },
+            TokenType::Identifier | TokenType::IntConst | TokenType::StringConst => Ok(true),
+        }
+    }
+
     fn remove_comments(code: String) -> Result<String> {
         let mut code_without_comments = String::new();
         let mut current_index = 0;

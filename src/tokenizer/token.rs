@@ -31,6 +31,17 @@ impl Token {
         &self.value
     }
 
+    pub fn is_type(&self) -> Result<bool> {
+        match self.token_type {
+            TokenType::Keyword => match KeyWord::from(&self.value)? {
+                KeyWord::Int | KeyWord::Char | KeyWord::Boolean => Ok(true),
+                _ => Ok(false),
+            },
+            TokenType::Symbol | TokenType::IntConst | TokenType::StringConst => Ok(false),
+            TokenType::Identifier => Ok(true),
+        }
+    }
+
     pub fn is_op(&self) -> bool {
         matches!(
             self.value.as_str(),

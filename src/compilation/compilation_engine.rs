@@ -16,6 +16,7 @@ pub trait CompilationEngine {
     fn compile_class_var_dec(&mut self, writer: &mut impl Write) -> Result<()>;
     fn compile_type(&mut self, writer: &mut impl Write) -> Result<()>;
     fn compile_subroutine_dec(&mut self, writer: &mut impl Write) -> Result<()>;
+    fn compile_parameter_list(&mut self, writer: &mut impl Write) -> Result<()>;
     fn compile_subroutine_body(&mut self, writer: &mut impl Write) -> Result<()>;
     fn compile_var_dec(&mut self, writer: &mut impl Write) -> Result<()>;
     fn compile_statements(&mut self, writer: &mut impl Write) -> Result<()>;
@@ -135,15 +136,39 @@ impl CompilationEngine for XmlCompilationEngine {
         self.write_identifier(writer)?;
         // ’(’
         self.write_symbol(writer)?;
-        // TODO: parameterList
-        self.write_start_tag("parameterList", writer)?;
-        self.write_end_tag("parameterList", writer)?;
+        // parameterList
+        self.compile_parameter_list(writer)?;
         // ’)’
         self.write_symbol(writer)?;
         // subroutineBody
         self.compile_subroutine_body(writer)?;
         // </subroutineDec>
         self.write_end_tag("subroutineDec", writer)?;
+        Ok(())
+    }
+
+    /// parameterList = ((type varName) (’,’ type varName)*)?
+    fn compile_parameter_list(&mut self, writer: &mut impl Write) -> Result<()> {
+        // <parameterList>
+        self.write_start_tag("parameterList", writer)?;
+        // ((type varName) (’,’ type varName)*)?
+        if self.tokenizer.peek()?.is_type()? {
+            // type
+            self.compile_type(writer)?;
+            // varName
+            self.write_identifier(writer)?;
+            // (’,’ type varName)*
+            while self.tokenizer.peek()?.value() == "," {
+                // ’,’
+                self.write_symbol(writer)?;
+                // type
+                self.compile_type(writer)?;
+                // varName
+                self.write_identifier(writer)?;
+            }
+        }
+        // </parameterList>
+        self.write_end_tag("parameterList", writer)?;
         Ok(())
     }
 

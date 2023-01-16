@@ -8,7 +8,7 @@ use crate::tokenizer::key_word::KeyWord::{
     Boolean, Char, Class, Constructor, Do, Else, False, Field, Function, If, Int, Let, Method,
     Null, Return, Static, This, True, Var, Void, While,
 };
-use crate::tokenizer::token_type::TokenType;
+use crate::tokenizer::token_type::TokenType::{Identifier, IntConst, Keyword, StringConst, Symbol};
 
 pub trait CompilationEngine {
     fn new(tokenizer: JackTokenizer) -> Self;
@@ -104,8 +104,8 @@ impl CompilationEngine for XmlCompilationEngine {
     /// type = ’int’ | ’char’ | ’boolean’ | className
     fn compile_type(&mut self, writer: &mut impl Write) -> Result<()> {
         match self.tokenizer.peek()?.token_type() {
-            TokenType::Keyword => self.write_key_word(vec![Int, Boolean, Char], writer)?,
-            TokenType::Identifier => self.write_identifier(writer)?,
+            Keyword => self.write_key_word(vec![Int, Boolean, Char], writer)?,
+            Identifier => self.write_identifier(writer)?,
             _ => bail!(Error::msg("Illegal token")),
         }
         Ok(())
@@ -118,7 +118,7 @@ impl CompilationEngine for XmlCompilationEngine {
         // ’constructor’ | ’function’ | ’method’
         self.write_key_word(vec![Constructor, Function, Method], writer)?;
         // ’void’ | type
-        if self.tokenizer.peek()?.token_type() == &TokenType::Keyword
+        if self.tokenizer.peek()?.token_type() == &Keyword
             && KeyWord::from(self.tokenizer.peek()?.value())? == Void
         {
             self.write_key_word(vec![Void], writer)?
@@ -178,7 +178,7 @@ impl CompilationEngine for XmlCompilationEngine {
         self.write_identifier(writer)?;
         // (’,’ varName)*
         loop {
-            if self.tokenizer.peek()?.token_type() == &TokenType::Symbol
+            if self.tokenizer.peek()?.token_type() == &Symbol
                 && self.tokenizer.peek()?.value() == ","
             {
                 // ','
@@ -277,7 +277,7 @@ impl CompilationEngine for XmlCompilationEngine {
         self.write_symbol(writer)?;
         // (’else’ ’{’ statements ’}’)?
         match self.tokenizer.peek()?.token_type() {
-            TokenType::Keyword => match KeyWord::from(self.tokenizer.peek()?.value())? {
+            Keyword => match KeyWord::from(self.tokenizer.peek()?.value())? {
                 KeyWord::Else => {
                     // else
                     self.write_key_word(vec![Else], writer)?;
@@ -380,12 +380,12 @@ impl CompilationEngine for XmlCompilationEngine {
         self.write_start_tag("term", writer)?;
 
         match self.tokenizer.peek()?.token_type() {
-            TokenType::Keyword => {
+            Keyword => {
                 if self.tokenizer.peek()?.is_keyword_constant()? {
                     self.write_key_word(vec![True, False, Null, This], writer)?;
                 }
             }
-            TokenType::Symbol => match self.tokenizer.peek()?.value().as_str() {
+            Symbol => match self.tokenizer.peek()?.value().as_str() {
                 "(" => {
                     // '('
                     self.write_symbol(writer)?;
@@ -402,7 +402,7 @@ impl CompilationEngine for XmlCompilationEngine {
                 }
                 _ => {}
             },
-            TokenType::Identifier => {
+            Identifier => {
                 match self.tokenizer.peek_second()?.value().as_str() {
                     "[" => {
                         // varName
@@ -418,8 +418,8 @@ impl CompilationEngine for XmlCompilationEngine {
                     _ => self.write_identifier(writer)?,
                 }
             }
-            TokenType::IntConst => self.write_integer_constant(writer)?,
-            TokenType::StringConst => self.write_string_constant(writer)?,
+            IntConst => self.write_integer_constant(writer)?,
+            StringConst => self.write_string_constant(writer)?,
         }
 
         // </term>
@@ -465,7 +465,7 @@ impl XmlCompilationEngine {
     fn write_key_word(&mut self, targets: Vec<KeyWord>, writer: &mut impl Write) -> Result<()> {
         self.tokenizer.advance()?;
         match self.tokenizer.token_type()? {
-            TokenType::Keyword => {
+            Keyword => {
                 let keyword = self.tokenizer.key_word()?;
                 match keyword {
                     keyword if targets.contains(&keyword) => writeln!(
@@ -485,7 +485,7 @@ impl XmlCompilationEngine {
     fn write_identifier(&mut self, writer: &mut impl Write) -> Result<()> {
         self.tokenizer.advance()?;
         match self.tokenizer.token_type()? {
-            TokenType::Identifier => writeln!(
+            Identifier => writeln!(
                 writer,
                 "{}<identifier> {} </identifier>",
                 self.indent,
@@ -499,7 +499,7 @@ impl XmlCompilationEngine {
     fn write_symbol(&mut self, writer: &mut impl Write) -> Result<()> {
         self.tokenizer.advance()?;
         match self.tokenizer.token_type()? {
-            TokenType::Symbol => {
+            Symbol => {
                 let symbol = match self.tokenizer.symbol() {
                     '<' => "&lt;",
                     '>' => "&gt;",
@@ -526,7 +526,7 @@ impl XmlCompilationEngine {
     fn write_string_constant(&mut self, writer: &mut impl Write) -> Result<()> {
         self.tokenizer.advance()?;
         match self.tokenizer.token_type()? {
-            TokenType::StringConst => writeln!(
+            StringConst => writeln!(
                 writer,
                 "{}<stringConstant> {} </stringConstant>",
                 self.indent,
@@ -540,7 +540,7 @@ impl XmlCompilationEngine {
     fn write_integer_constant(&mut self, writer: &mut impl Write) -> Result<()> {
         self.tokenizer.advance()?;
         match self.tokenizer.token_type()? {
-            TokenType::IntConst => writeln!(
+            IntConst => writeln!(
                 writer,
                 "{}<integerConstant> {} </integerConstant>",
                 self.indent,

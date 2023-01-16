@@ -20,6 +20,13 @@ fn square_square() {
 }
 
 #[test]
+fn square_square_game() {
+    let expected_file_path = Path::new("tests/resources/Square/SquareGame.xml");
+    let src_path = Path::new("tests/resources/Square/SquareGame.jack");
+    test_diff(expected_file_path, src_path);
+}
+
+#[test]
 fn array_test_main() {
     let expected_file_path = Path::new("tests/resources/ArrayTest/Main.xml");
     let src_path = Path::new("tests/resources/ArrayTest/Main.jack");

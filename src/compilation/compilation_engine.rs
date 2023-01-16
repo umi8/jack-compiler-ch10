@@ -17,6 +17,7 @@ pub trait CompilationEngine {
     fn compile_statements(&mut self, writer: &mut impl Write) -> Result<()>;
     fn compile_statement(&mut self, writer: &mut impl Write) -> Result<()>;
     fn compile_let_statement(&mut self, writer: &mut impl Write) -> Result<()>;
+    fn compile_if_statement(&mut self, writer: &mut impl Write) -> Result<()>;
     fn compile_while_statement(&mut self, writer: &mut impl Write) -> Result<()>;
     fn compile_do_statement(&mut self, writer: &mut impl Write) -> Result<()>;
     fn compile_return_statement(&mut self, writer: &mut impl Write) -> Result<()>;
@@ -222,7 +223,7 @@ impl CompilationEngine for XmlCompilationEngine {
     fn compile_statement(&mut self, writer: &mut impl Write) -> Result<()> {
         match KeyWord::from(self.tokenizer.peek()?.value())? {
             KeyWord::Let => self.compile_let_statement(writer)?,
-            KeyWord::If => todo!("ifStatement"),
+            KeyWord::If => self.compile_if_statement(writer)?,
             KeyWord::While => self.compile_while_statement(writer)?,
             KeyWord::Do => self.compile_do_statement(writer)?,
             KeyWord::Return => self.compile_return_statement(writer)?,
@@ -256,6 +257,46 @@ impl CompilationEngine for XmlCompilationEngine {
         self.write_symbol(writer)?;
         // </letStatement>
         self.write_end_tag("letStatement", writer)?;
+        Ok(())
+    }
+
+    /// ifStatement = ’if’ ’(’ expression ’)’ ’{’ statements ’}’ (’else’ ’{’ statements ’}’)?
+    fn compile_if_statement(&mut self, writer: &mut impl Write) -> Result<()> {
+        // <ifStatement>
+        self.write_start_tag("ifStatement", writer)?;
+        // if
+        self.write_key_word(vec![KeyWord::If], writer)?;
+        // ’(’
+        self.write_symbol(writer)?;
+        // expression
+        self.compile_expression(writer)?;
+        // ’)’
+        self.write_symbol(writer)?;
+        // ’{’
+        self.write_symbol(writer)?;
+        // statements
+        self.compile_statements(writer)?;
+        // ’}’
+        self.write_symbol(writer)?;
+        // (’else’ ’{’ statements ’}’)?
+        match self.tokenizer.peek()?.token_type() {
+            TokenType::Keyword => match KeyWord::from(self.tokenizer.peek()?.value())? {
+                KeyWord::Else => {
+                    // else
+                    self.write_key_word(vec![KeyWord::Else], writer)?;
+                    // ’{’
+                    self.write_symbol(writer)?;
+                    // statements
+                    self.compile_statements(writer)?;
+                    // ’}’
+                    self.write_symbol(writer)?;
+                }
+                _ => {}
+            },
+            _ => {}
+        }
+        // </ifStatement>
+        self.write_end_tag("ifStatement", writer)?;
         Ok(())
     }
 

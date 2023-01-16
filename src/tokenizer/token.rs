@@ -1,4 +1,6 @@
+use crate::tokenizer::key_word::KeyWord;
 use crate::tokenizer::token_type::TokenType;
+use anyhow::Result;
 use std::fmt::Debug;
 
 #[derive(Debug)]
@@ -34,5 +36,15 @@ impl Token {
             self.value.as_str(),
             "+" | "-" | "*" | "/" | "&" | "|" | "<" | ">" | "="
         )
+    }
+
+    pub fn is_keyword_constant(&self) -> Result<bool> {
+        if !KeyWord::exists(&self.value) {
+            return Ok(false);
+        }
+        match KeyWord::from(&self.value)? {
+            KeyWord::True | KeyWord::False | KeyWord::Null | KeyWord::This => Ok(true),
+            _ => Ok(false),
+        }
     }
 }

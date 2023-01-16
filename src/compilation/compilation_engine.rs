@@ -93,7 +93,13 @@ impl CompilationEngine for XmlCompilationEngine {
         self.compile_type(writer)?;
         // varName
         self.write_identifier(writer)?;
-        // TODO: (’,’ varName)*
+        // (’,’ varName)*
+        while self.tokenizer.peek()?.value() == "," {
+            // ,
+            self.write_symbol(writer)?;
+            // varName
+            self.write_identifier(writer)?;
+        }
         // ;
         self.write_symbol(writer)?;
         // </classVarDec>

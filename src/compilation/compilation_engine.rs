@@ -479,8 +479,15 @@ impl CompilationEngine for XmlCompilationEngine {
         self.write_start_tag("expressionList", writer)?;
         // (expression)?
         if self.tokenizer.is_term()? {
+            // expression
             self.compile_expression(writer)?;
-            // TODO: (’,’ expression)*
+            // (’,’ expression)*
+            while self.tokenizer.peek()?.value() == "," {
+                // ’,’
+                self.write_symbol(writer)?;
+                // expression
+                self.compile_expression(writer)?;
+            }
         }
         // </expressionList>
         self.write_end_tag("expressionList", writer)?;

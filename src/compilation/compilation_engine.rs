@@ -514,11 +514,11 @@ impl XmlCompilationEngine {
         Ok(())
     }
 
-    fn increase_indent(&mut self) -> () {
+    fn increase_indent(&mut self) {
         self.indent += &" ".repeat(INDENT_COUNT);
     }
 
-    fn decrease_indent(&mut self) -> () {
+    fn decrease_indent(&mut self) {
         let count_after_decrease = self.indent.len() - INDENT_COUNT;
         self.indent = self.indent[..count_after_decrease].parse().unwrap();
     }

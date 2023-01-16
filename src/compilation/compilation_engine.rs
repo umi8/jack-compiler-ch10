@@ -399,8 +399,10 @@ impl CompilationEngine for XmlCompilationEngine {
                     self.write_symbol(writer)?;
                 }
                 "-" | "~" => {
-                    todo!("unaryOp");
-                    // TODO: call term
+                    // unaryOp
+                    self.write_symbol(writer)?;
+                    // term
+                    self.compile_term(writer)?;
                 }
                 _ => {}
             },

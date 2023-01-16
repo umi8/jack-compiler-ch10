@@ -6,6 +6,13 @@ use jack_compiler::compilation::compilation_engine::{CompilationEngine, XmlCompi
 use jack_compiler::tokenizer::jack_tokenizer::JackTokenizer;
 
 #[test]
+fn square_main() {
+    let expected_file_path = Path::new("tests/resources/Square/Main.xml");
+    let src_path = Path::new("tests/resources/Square/Main.jack");
+    test_diff(expected_file_path, src_path);
+}
+
+#[test]
 fn array_test_main() {
     let expected_file_path = Path::new("tests/resources/ArrayTest/Main.xml");
     let src_path = Path::new("tests/resources/ArrayTest/Main.jack");

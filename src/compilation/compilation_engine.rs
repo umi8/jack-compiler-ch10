@@ -276,21 +276,17 @@ impl CompilationEngine for XmlCompilationEngine {
         // ’}’
         self.write_symbol(writer)?;
         // (’else’ ’{’ statements ’}’)?
-        match self.tokenizer.peek()?.token_type() {
-            Keyword => match KeyWord::from(self.tokenizer.peek()?.value())? {
-                KeyWord::Else => {
-                    // else
-                    self.write_key_word(vec![Else], writer)?;
-                    // ’{’
-                    self.write_symbol(writer)?;
-                    // statements
-                    self.compile_statements(writer)?;
-                    // ’}’
-                    self.write_symbol(writer)?;
-                }
-                _ => {}
-            },
-            _ => {}
+        if self.tokenizer.peek()?.token_type() == &Keyword
+            && KeyWord::from(self.tokenizer.peek()?.value())? == KeyWord::Else
+        {
+            // else
+            self.write_key_word(vec![Else], writer)?;
+            // ’{’
+            self.write_symbol(writer)?;
+            // statements
+            self.compile_statements(writer)?;
+            // ’}’
+            self.write_symbol(writer)?;
         }
         // </ifStatement>
         self.write_end_tag("ifStatement", writer)?;

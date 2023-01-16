@@ -203,3 +203,26 @@ impl JackTokenizer {
 const SYMBOLS: [char; 19] = [
     '{', '}', '(', ')', '[', ']', '.', ',', ';', '+', '-', '*', '/', '&', '|', '<', '>', '=', '~',
 ];
+
+#[cfg(test)]
+mod tests {
+    use crate::tokenizer::jack_tokenizer::JackTokenizer;
+    use crate::tokenizer::token::Token;
+    use crate::tokenizer::token_type::TokenType;
+    use std::collections::VecDeque;
+
+    #[test]
+    fn is_term_return_true_when_expression_with_parentheses() {
+        let tokens: VecDeque<Token> = VecDeque::from([
+            Token::new(TokenType::Symbol, String::from("(")),
+            Token::new(TokenType::Identifier, String::from("x")),
+        ]);
+
+        let mut tokenizer = JackTokenizer {
+            tokens,
+            current_token: Default::default(),
+        };
+
+        assert_eq!(true, tokenizer.is_term().unwrap())
+    }
+}

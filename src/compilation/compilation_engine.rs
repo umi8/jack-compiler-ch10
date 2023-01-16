@@ -4,6 +4,7 @@ use anyhow::{bail, Error, Result};
 
 use crate::tokenizer::jack_tokenizer::JackTokenizer;
 use crate::tokenizer::key_word::KeyWord;
+use crate::tokenizer::key_word::KeyWord::{False, Null, This, True};
 use crate::tokenizer::token_type::TokenType;
 
 pub trait CompilationEngine {
@@ -384,7 +385,9 @@ impl CompilationEngine for XmlCompilationEngine {
 
         match self.tokenizer.peek()?.token_type() {
             TokenType::Keyword => {
-                todo!("keywordConstant")
+                if self.tokenizer.peek()?.is_keyword_constant()? {
+                    self.write_key_word(vec![True, False, Null, This], writer)?;
+                }
             }
             TokenType::Symbol => match self.tokenizer.peek()?.value().as_str() {
                 "(" => {

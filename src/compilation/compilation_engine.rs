@@ -136,7 +136,8 @@ impl CompilationEngine for XmlCompilationEngine {
         self.write_end_tag("parameterList", writer)?;
         // ’)’
         self.write_symbol(writer)?;
-        // TODO: subroutineBody
+        // subroutineBody
+        self.compile_subroutine_body(writer)?;
         // </subroutineDec>
         self.write_end_tag("subroutineDec", writer)?;
         Ok(())
@@ -158,7 +159,8 @@ impl CompilationEngine for XmlCompilationEngine {
                 _ => break,
             }
         }
-        // TODO: statements
+        // statements
+        self.compile_statements(writer)?;
         // ’}’
         self.write_symbol(writer)?;
         // </subroutineBody>
@@ -619,6 +621,16 @@ mod tests {
     <parameterList>
     </parameterList>
     <symbol> ) </symbol>
+    <subroutineBody>
+      <symbol> { </symbol>
+      <statements>
+        <returnStatement>
+          <keyword> return </keyword>
+          <symbol> ; </symbol>
+        </returnStatement>
+      </statements>
+      <symbol> } </symbol>
+    </subroutineBody>
   </subroutineDec>
   <subroutineDec>
     <keyword> function </keyword>
@@ -628,6 +640,16 @@ mod tests {
     <parameterList>
     </parameterList>
     <symbol> ) </symbol>
+    <subroutineBody>
+      <symbol> { </symbol>
+      <statements>
+        <returnStatement>
+          <keyword> return </keyword>
+          <symbol> ; </symbol>
+        </returnStatement>
+      </statements>
+      <symbol> } </symbol>
+    </subroutineBody>
   </subroutineDec>
   <symbol> } </symbol>
 </class>
@@ -636,8 +658,8 @@ mod tests {
 
         let mut src_file = tempfile::NamedTempFile::new().unwrap();
         writeln!(src_file, "class Main {{").unwrap();
-        writeln!(src_file, "function void main()").unwrap();
-        writeln!(src_file, "function boolean isSomething()").unwrap();
+        writeln!(src_file, "function void main() {{ return; }}").unwrap();
+        writeln!(src_file, "function boolean isSomething() {{ return; }}").unwrap();
         writeln!(src_file, "}}").unwrap();
         src_file.seek(SeekFrom::Start(0)).unwrap();
         let path = src_file.path();
@@ -692,12 +714,24 @@ mod tests {
   <parameterList>
   </parameterList>
   <symbol> ) </symbol>
+  <subroutineBody>
+    <symbol> { </symbol>
+    <statements>
+      <returnStatement>
+        <keyword> return </keyword>
+        <symbol> ; </symbol>
+      </returnStatement>
+    </statements>
+    <symbol> } </symbol>
+  </subroutineBody>
 </subroutineDec>
 "
         .to_string();
 
         let mut src_file = tempfile::NamedTempFile::new().unwrap();
-        writeln!(src_file, "function void main()").unwrap();
+        writeln!(src_file, "function void main() {{").unwrap();
+        writeln!(src_file, "return;").unwrap();
+        writeln!(src_file, "}}").unwrap();
         src_file.seek(SeekFrom::Start(0)).unwrap();
         let path = src_file.path();
         let mut output = Vec::<u8>::new();
@@ -729,6 +763,12 @@ mod tests {
     <identifier> length </identifier>
     <symbol> ; </symbol>
   </varDec>
+  <statements>
+    <returnStatement>
+      <keyword> return </keyword>
+      <symbol> ; </symbol>
+    </returnStatement>
+  </statements>
   <symbol> } </symbol>
 </subroutineBody>
 "
@@ -738,6 +778,7 @@ mod tests {
         writeln!(src_file, "{{").unwrap();
         writeln!(src_file, "var Array a;").unwrap();
         writeln!(src_file, "var int length;").unwrap();
+        writeln!(src_file, "return;").unwrap();
         writeln!(src_file, "}}").unwrap();
         src_file.seek(SeekFrom::Start(0)).unwrap();
         let path = src_file.path();

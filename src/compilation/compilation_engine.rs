@@ -27,11 +27,17 @@ trait CompilationEngine {
 
 struct XmlCompilationEngine {
     tokenizer: JackTokenizer,
+    indent: String,
 }
+
+const INDENT_COUNT: usize = 2;
 
 impl CompilationEngine for XmlCompilationEngine {
     fn new(tokenizer: JackTokenizer) -> Self {
-        XmlCompilationEngine { tokenizer }
+        XmlCompilationEngine {
+            tokenizer,
+            indent: String::new(),
+        }
     }
 
     /// class = ’class’ className ’{’ classVarDec* subroutineDec* ’}’
@@ -415,7 +421,8 @@ impl XmlCompilationEngine {
                 match keyword {
                     keyword if targets.contains(&keyword) => writeln!(
                         writer,
-                        "<keyword> {} </keyword>",
+                        "{}<keyword> {} </keyword>",
+                        self.indent,
                         self.tokenizer.key_word()?.to_string().to_lowercase()
                     )?,
                     _ => bail!(Error::msg("Illegal token")),
@@ -431,7 +438,8 @@ impl XmlCompilationEngine {
         match self.tokenizer.token_type()? {
             TokenType::Identifier => writeln!(
                 writer,
-                "<identifier> {} </identifier>",
+                "{}<identifier> {} </identifier>",
+                self.indent,
                 self.tokenizer.identifier()
             )?,
             _ => bail!(Error::msg("Illegal token")),
@@ -451,9 +459,14 @@ impl XmlCompilationEngine {
                 };
 
                 if symbol.is_empty() {
-                    writeln!(writer, "<symbol> {} </symbol>", self.tokenizer.symbol())?
+                    writeln!(
+                        writer,
+                        "{}<symbol> {} </symbol>",
+                        self.indent,
+                        self.tokenizer.symbol()
+                    )?
                 } else {
-                    writeln!(writer, "<symbol> {} </symbol>", symbol)?
+                    writeln!(writer, "{}<symbol> {} </symbol>", self.indent, symbol)?
                 }
             }
             _ => bail!(Error::msg("Illegal token")),
@@ -466,7 +479,8 @@ impl XmlCompilationEngine {
         match self.tokenizer.token_type()? {
             TokenType::StringConst => writeln!(
                 writer,
-                "<stringConstant> {} </stringConstant>",
+                "{}<stringConstant> {} </stringConstant>",
+                self.indent,
                 self.tokenizer.string_val()
             )?,
             _ => bail!(Error::msg("Illegal token")),
@@ -479,7 +493,8 @@ impl XmlCompilationEngine {
         match self.tokenizer.token_type()? {
             TokenType::IntConst => writeln!(
                 writer,
-                "<integerConstant> {} </integerConstant>",
+                "{}<integerConstant> {} </integerConstant>",
+                self.indent,
                 self.tokenizer.int_val()?
             )?,
             _ => bail!(Error::msg("Illegal token")),
@@ -488,13 +503,24 @@ impl XmlCompilationEngine {
     }
 
     fn write_start_tag(&mut self, element: &str, writer: &mut impl Write) -> Result<()> {
-        writeln!(writer, "<{}>", element)?;
+        writeln!(writer, "{}<{}>", self.indent, element)?;
+        self.increase_indent();
         Ok(())
     }
 
     fn write_end_tag(&mut self, element: &str, writer: &mut impl Write) -> Result<()> {
-        writeln!(writer, "</{}>", element)?;
+        self.decrease_indent();
+        writeln!(writer, "{}</{}>", self.indent, element)?;
         Ok(())
+    }
+
+    fn increase_indent(&mut self) {
+        self.indent += &" ".repeat(INDENT_COUNT);
+    }
+
+    fn decrease_indent(&mut self) {
+        let count_after_decrease = self.indent.len() - INDENT_COUNT;
+        self.indent = self.indent[..count_after_decrease].parse().unwrap();
     }
 }
 
@@ -507,13 +533,15 @@ mod tests {
 
     #[test]
     fn can_compile_class() {
-        let expected = "<class>\n\
-        <keyword> class </keyword>\n\
-        <identifier> Main </identifier>\n\
-        <symbol> { </symbol>\n\
-        <symbol> } </symbol>\n\
-        </class>\n"
-            .to_string();
+        let expected = "\
+<class>
+  <keyword> class </keyword>
+  <identifier> Main </identifier>
+  <symbol> { </symbol>
+  <symbol> } </symbol>
+</class>
+"
+        .to_string();
 
         let mut src_file = tempfile::NamedTempFile::new().unwrap();
         writeln!(src_file, "class Main {{").unwrap();
@@ -534,25 +562,27 @@ mod tests {
 
     #[test]
     fn can_compile_class_with_classvardec() {
-        let expected = "<class>\n\
-        <keyword> class </keyword>\n\
-        <identifier> Main </identifier>\n\
-        <symbol> { </symbol>\n\
-        <classVarDec>\n\
-        <keyword> static </keyword>\n\
-        <keyword> boolean </keyword>\n\
-        <identifier> test </identifier>\n\
-        <symbol> ; </symbol>\n\
-        </classVarDec>\n\
-        <classVarDec>\n\
-        <keyword> static </keyword>\n\
-        <keyword> boolean </keyword>\n\
-        <identifier> test </identifier>\n\
-        <symbol> ; </symbol>\n\
-        </classVarDec>\n\
-        <symbol> } </symbol>\n\
-        </class>\n"
-            .to_string();
+        let expected = "\
+<class>
+  <keyword> class </keyword>
+  <identifier> Main </identifier>
+  <symbol> { </symbol>
+  <classVarDec>
+    <keyword> static </keyword>
+    <keyword> boolean </keyword>
+    <identifier> test </identifier>
+    <symbol> ; </symbol>
+  </classVarDec>
+  <classVarDec>
+    <keyword> static </keyword>
+    <keyword> boolean </keyword>
+    <identifier> test </identifier>
+    <symbol> ; </symbol>
+  </classVarDec>
+  <symbol> } </symbol>
+</class>
+"
+        .to_string();
 
         let mut src_file = tempfile::NamedTempFile::new().unwrap();
         writeln!(src_file, "class Main {{").unwrap();
@@ -575,31 +605,33 @@ mod tests {
 
     #[test]
     fn can_compile_class_with_subroutinedec() {
-        let expected = "<class>\n\
-        <keyword> class </keyword>\n\
-        <identifier> Main </identifier>\n\
-        <symbol> { </symbol>\n\
-        <subroutineDec>\n\
-        <keyword> function </keyword>\n\
-        <keyword> void </keyword>\n\
-        <identifier> main </identifier>\n\
-        <symbol> ( </symbol>\n\
-        <parameterList>\n\
-        </parameterList>\n\
-        <symbol> ) </symbol>\n\
-        </subroutineDec>\n\
-        <subroutineDec>\n\
-        <keyword> function </keyword>\n\
-        <keyword> boolean </keyword>\n\
-        <identifier> isSomething </identifier>\n\
-        <symbol> ( </symbol>\n\
-        <parameterList>\n\
-        </parameterList>\n\
-        <symbol> ) </symbol>\n\
-        </subroutineDec>\n\
-        <symbol> } </symbol>\n\
-        </class>\n"
-            .to_string();
+        let expected = "\
+<class>
+  <keyword> class </keyword>
+  <identifier> Main </identifier>
+  <symbol> { </symbol>
+  <subroutineDec>
+    <keyword> function </keyword>
+    <keyword> void </keyword>
+    <identifier> main </identifier>
+    <symbol> ( </symbol>
+    <parameterList>
+    </parameterList>
+    <symbol> ) </symbol>
+  </subroutineDec>
+  <subroutineDec>
+    <keyword> function </keyword>
+    <keyword> boolean </keyword>
+    <identifier> isSomething </identifier>
+    <symbol> ( </symbol>
+    <parameterList>
+    </parameterList>
+    <symbol> ) </symbol>
+  </subroutineDec>
+  <symbol> } </symbol>
+</class>
+"
+        .to_string();
 
         let mut src_file = tempfile::NamedTempFile::new().unwrap();
         writeln!(src_file, "class Main {{").unwrap();
@@ -622,13 +654,15 @@ mod tests {
 
     #[test]
     fn can_compile_class_var_dec() {
-        let expected = "<classVarDec>\n\
-        <keyword> static </keyword>\n\
-        <keyword> boolean </keyword>\n\
-        <identifier> test </identifier>\n\
-        <symbol> ; </symbol>\n\
-        </classVarDec>\n"
-            .to_string();
+        let expected = "\
+<classVarDec>
+  <keyword> static </keyword>
+  <keyword> boolean </keyword>
+  <identifier> test </identifier>
+  <symbol> ; </symbol>
+</classVarDec>
+"
+        .to_string();
 
         let mut src_file = tempfile::NamedTempFile::new().unwrap();
         writeln!(src_file, "static boolean test;").unwrap();
@@ -648,16 +682,18 @@ mod tests {
 
     #[test]
     fn can_compile_subroutine_dec() {
-        let expected = "<subroutineDec>\n\
-        <keyword> function </keyword>\n\
-        <keyword> void </keyword>\n\
-        <identifier> main </identifier>\n\
-        <symbol> ( </symbol>\n\
-        <parameterList>\n\
-        </parameterList>\n\
-        <symbol> ) </symbol>\n\
-        </subroutineDec>\n"
-            .to_string();
+        let expected = "\
+<subroutineDec>
+  <keyword> function </keyword>
+  <keyword> void </keyword>
+  <identifier> main </identifier>
+  <symbol> ( </symbol>
+  <parameterList>
+  </parameterList>
+  <symbol> ) </symbol>
+</subroutineDec>
+"
+        .to_string();
 
         let mut src_file = tempfile::NamedTempFile::new().unwrap();
         writeln!(src_file, "function void main()").unwrap();
@@ -678,23 +714,24 @@ mod tests {
     #[test]
     fn can_compile_subroutine_body() {
         let expected = "\
-        <subroutineBody>\n\
-        <symbol> { </symbol>\n\
-        <varDec>\n\
-        <keyword> var </keyword>\n\
-        <identifier> Array </identifier>\n\
-        <identifier> a </identifier>\n\
-        <symbol> ; </symbol>\n\
-        </varDec>\n\
-        <varDec>\n\
-        <keyword> var </keyword>\n\
-        <keyword> int </keyword>\n\
-        <identifier> length </identifier>\n\
-        <symbol> ; </symbol>\n\
-        </varDec>\n\
-        <symbol> } </symbol>\n\
-        </subroutineBody>\n"
-            .to_string();
+<subroutineBody>
+  <symbol> { </symbol>
+  <varDec>
+    <keyword> var </keyword>
+    <identifier> Array </identifier>
+    <identifier> a </identifier>
+    <symbol> ; </symbol>
+  </varDec>
+  <varDec>
+    <keyword> var </keyword>
+    <keyword> int </keyword>
+    <identifier> length </identifier>
+    <symbol> ; </symbol>
+  </varDec>
+  <symbol> } </symbol>
+</subroutineBody>
+"
+        .to_string();
 
         let mut src_file = tempfile::NamedTempFile::new().unwrap();
         writeln!(src_file, "{{").unwrap();
@@ -717,17 +754,19 @@ mod tests {
 
     #[test]
     fn can_compile_var_dec() {
-        let expected = "<varDec>\n\
-        <keyword> var </keyword>\n\
-        <keyword> int </keyword>\n\
-        <identifier> i </identifier>\n\
-        <symbol> , </symbol>\n\
-        <identifier> j </identifier>\n\
-        <symbol> , </symbol>\n\
-        <identifier> sum </identifier>\n\
-        <symbol> ; </symbol>\n\
-        </varDec>\n"
-            .to_string();
+        let expected = "\
+<varDec>
+  <keyword> var </keyword>
+  <keyword> int </keyword>
+  <identifier> i </identifier>
+  <symbol> , </symbol>
+  <identifier> j </identifier>
+  <symbol> , </symbol>
+  <identifier> sum </identifier>
+  <symbol> ; </symbol>
+</varDec>
+"
+        .to_string();
 
         let mut src_file = tempfile::NamedTempFile::new().unwrap();
         writeln!(src_file, "var int i, j, sum;").unwrap();
@@ -747,29 +786,31 @@ mod tests {
 
     #[test]
     fn can_compile_let_statement() {
-        let expected = "<letStatement>\n\
-            <keyword> let </keyword>\n\
-            <identifier> length </identifier>\n\
-            <symbol> = </symbol>\n\
-            <expression>\n\
-            <term>\n\
-            <identifier> Keyboard </identifier>\n\
-            <symbol> . </symbol>\n\
-            <identifier> readInt </identifier>\n\
-            <symbol> ( </symbol>\n\
-            <expressionList>\n\
-            <expression>\n\
-            <term>\n\
-            <stringConstant> HOW MANY NUMBERS?  </stringConstant>\n\
-            </term>\n\
-            </expression>\n\
-            </expressionList>\n\
-            <symbol> ) </symbol>\n\
-            </term>\n\
-            </expression>\n\
-            <symbol> ; </symbol>\n\
-            </letStatement>\n"
-            .to_string();
+        let expected = "\
+<letStatement>
+  <keyword> let </keyword>
+  <identifier> length </identifier>
+  <symbol> = </symbol>
+  <expression>
+    <term>
+      <identifier> Keyboard </identifier>
+      <symbol> . </symbol>
+      <identifier> readInt </identifier>
+      <symbol> ( </symbol>
+      <expressionList>
+        <expression>
+          <term>
+            <stringConstant> HOW MANY NUMBERS?  </stringConstant>
+          </term>
+        </expression>
+      </expressionList>
+      <symbol> ) </symbol>
+    </term>
+  </expression>
+  <symbol> ; </symbol>
+</letStatement>
+"
+        .to_string();
 
         let mut src_file = tempfile::NamedTempFile::new().unwrap();
         writeln!(
@@ -794,69 +835,70 @@ mod tests {
     #[test]
     fn can_compile_while_statement() {
         let expected = "\
-            <whileStatement>\n\
-            <keyword> while </keyword>\n\
-            <symbol> ( </symbol>\n\
-            <expression>\n\
-            <term>\n\
-            <identifier> i </identifier>\n\
-            </term>\n\
-            <symbol> &lt; </symbol>\n\
-            <term>\n\
-            <identifier> length </identifier>\n\
-            </term>\n\
-            </expression>\n\
-            <symbol> ) </symbol>\n\
-            <symbol> { </symbol>\n\
-            <statements>\n\
-            <letStatement>\n\
-            <keyword> let </keyword>\n\
-            <identifier> a </identifier>\n\
-            <symbol> [ </symbol>\n\
-            <expression>\n\
-            <term>\n\
-            <identifier> i </identifier>\n\
-            </term>\n\
-            </expression>\n\
-            <symbol> ] </symbol>\n\
-            <symbol> = </symbol>\n\
-            <expression>\n\
-            <term>\n\
-            <identifier> Keyboard </identifier>\n\
-            <symbol> . </symbol>\n\
-            <identifier> readInt </identifier>\n\
-            <symbol> ( </symbol>\n\
-            <expressionList>\n\
-            <expression>\n\
-            <term>\n\
-            <stringConstant> ENTER THE NEXT NUMBER:  </stringConstant>\n\
-            </term>\n\
-            </expression>\n\
-            </expressionList>\n\
-            <symbol> ) </symbol>\n\
-            </term>\n\
-            </expression>\n\
-            <symbol> ; </symbol>\n\
-            </letStatement>\n\
-            <letStatement>\n\
-            <keyword> let </keyword>\n\
-            <identifier> i </identifier>\n\
-            <symbol> = </symbol>\n\
-            <expression>\n\
-            <term>\n\
-            <identifier> i </identifier>\n\
-            </term>\n\
-            <symbol> + </symbol>\n\
-            <term>\n\
-            <integerConstant> 1 </integerConstant>\n\
-            </term>\n\
-            </expression>\n\
-            <symbol> ; </symbol>\n\
-            </letStatement>\n\
-            </statements>\n\
-            <symbol> } </symbol>\n\
-            </whileStatement>\n"
-            .to_string();
+<whileStatement>
+  <keyword> while </keyword>
+  <symbol> ( </symbol>
+  <expression>
+    <term>
+      <identifier> i </identifier>
+    </term>
+    <symbol> &lt; </symbol>
+    <term>
+      <identifier> length </identifier>
+    </term>
+  </expression>
+  <symbol> ) </symbol>
+  <symbol> { </symbol>
+  <statements>
+    <letStatement>
+      <keyword> let </keyword>
+      <identifier> a </identifier>
+      <symbol> [ </symbol>
+      <expression>
+        <term>
+          <identifier> i </identifier>
+        </term>
+      </expression>
+      <symbol> ] </symbol>
+      <symbol> = </symbol>
+      <expression>
+        <term>
+          <identifier> Keyboard </identifier>
+          <symbol> . </symbol>
+          <identifier> readInt </identifier>
+          <symbol> ( </symbol>
+          <expressionList>
+            <expression>
+              <term>
+                <stringConstant> ENTER THE NEXT NUMBER:  </stringConstant>
+              </term>
+            </expression>
+          </expressionList>
+          <symbol> ) </symbol>
+        </term>
+      </expression>
+      <symbol> ; </symbol>
+    </letStatement>
+    <letStatement>
+      <keyword> let </keyword>
+      <identifier> i </identifier>
+      <symbol> = </symbol>
+      <expression>
+        <term>
+          <identifier> i </identifier>
+        </term>
+        <symbol> + </symbol>
+        <term>
+          <integerConstant> 1 </integerConstant>
+        </term>
+      </expression>
+      <symbol> ; </symbol>
+    </letStatement>
+  </statements>
+  <symbol> } </symbol>
+</whileStatement>
+"
+        .to_string();
 
         let mut src_file = tempfile::NamedTempFile::new().unwrap();
         writeln!(src_file, "while (i < length) {{").unwrap();
@@ -884,23 +926,24 @@ mod tests {
     #[test]
     fn can_compile_do_statement() {
         let expected = "\
-            <doStatement>\n\
-            <keyword> do </keyword>\n\
-            <identifier> Output </identifier>\n\
-            <symbol> . </symbol>\n\
-            <identifier> printString </identifier>\n\
-            <symbol> ( </symbol>\n\
-            <expressionList>\n\
-            <expression>\n\
-            <term>\n\
-            <stringConstant> THE AVERAGE IS:  </stringConstant>\n\
-            </term>\n\
-            </expression>\n\
-            </expressionList>\n\
-            <symbol> ) </symbol>\n\
-            <symbol> ; </symbol>\n\
-            </doStatement>\n"
-            .to_string();
+<doStatement>
+  <keyword> do </keyword>
+  <identifier> Output </identifier>
+  <symbol> . </symbol>
+  <identifier> printString </identifier>
+  <symbol> ( </symbol>
+  <expressionList>
+    <expression>
+      <term>
+        <stringConstant> THE AVERAGE IS:  </stringConstant>
+      </term>
+    </expression>
+  </expressionList>
+  <symbol> ) </symbol>
+  <symbol> ; </symbol>
+</doStatement>
+"
+        .to_string();
 
         let mut src_file = tempfile::NamedTempFile::new().unwrap();
         writeln!(src_file, "do Output.printString(\"THE AVERAGE IS: \");").unwrap();
@@ -921,16 +964,17 @@ mod tests {
     #[test]
     fn can_compile_return_statement() {
         let expected = "\
-            <returnStatement>\n\
-            <keyword> return </keyword>\n\
-            <expression>\n\
-            <term>\n\
-            <identifier> x </identifier>\n\
-            </term>\n\
-            </expression>\n\
-            <symbol> ; </symbol>\n\
-            </returnStatement>\n"
-            .to_string();
+<returnStatement>
+  <keyword> return </keyword>
+  <expression>
+    <term>
+      <identifier> x </identifier>
+    </term>
+  </expression>
+  <symbol> ; </symbol>
+</returnStatement>
+"
+        .to_string();
 
         let mut src_file = tempfile::NamedTempFile::new().unwrap();
         writeln!(src_file, "return x;").unwrap();
@@ -951,21 +995,22 @@ mod tests {
     #[test]
     fn can_compile_term() {
         let expected = "\
-            <term>\n\
-            <identifier> Keyboard </identifier>\n\
-            <symbol> . </symbol>\n\
-            <identifier> readInt </identifier>\n\
-            <symbol> ( </symbol>\n\
-            <expressionList>\n\
-            <expression>\n\
-            <term>\n\
-            <stringConstant> HOW MANY NUMBERS?  </stringConstant>\n\
-            </term>\n\
-            </expression>\n\
-            </expressionList>\n\
-            <symbol> ) </symbol>\n\
-            </term>\n"
-            .to_string();
+<term>
+  <identifier> Keyboard </identifier>
+  <symbol> . </symbol>
+  <identifier> readInt </identifier>
+  <symbol> ( </symbol>
+  <expressionList>
+    <expression>
+      <term>
+        <stringConstant> HOW MANY NUMBERS?  </stringConstant>
+      </term>
+    </expression>
+  </expressionList>
+  <symbol> ) </symbol>
+</term>
+"
+        .to_string();
 
         let mut src_file = tempfile::NamedTempFile::new().unwrap();
         writeln!(src_file, "Keyboard.readInt(\"HOW MANY NUMBERS? \")").unwrap();
@@ -986,19 +1031,20 @@ mod tests {
     #[test]
     fn can_compile_subroutine_call() {
         let expected = "\
-            <identifier> Keyboard </identifier>\n\
-            <symbol> . </symbol>\n\
-            <identifier> readInt </identifier>\n\
-            <symbol> ( </symbol>\n\
-            <expressionList>\n\
-            <expression>\n\
-            <term>\n\
-            <stringConstant> HOW MANY NUMBERS?  </stringConstant>\n\
-            </term>\n\
-            </expression>\n\
-            </expressionList>\n\
-            <symbol> ) </symbol>\n"
-            .to_string();
+<identifier> Keyboard </identifier>
+<symbol> . </symbol>
+<identifier> readInt </identifier>
+<symbol> ( </symbol>
+<expressionList>
+  <expression>
+    <term>
+      <stringConstant> HOW MANY NUMBERS?  </stringConstant>
+    </term>
+  </expression>
+</expressionList>
+<symbol> ) </symbol>
+"
+        .to_string();
 
         let mut src_file = tempfile::NamedTempFile::new().unwrap();
         writeln!(src_file, "Keyboard.readInt(\"HOW MANY NUMBERS? \")").unwrap();

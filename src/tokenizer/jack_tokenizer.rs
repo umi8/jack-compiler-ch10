@@ -81,8 +81,8 @@ impl JackTokenizer {
     pub fn is_term(&mut self) -> Result<bool> {
         match self.peek()?.token_type() {
             TokenType::Keyword => Ok(self.peek()?.is_keyword_constant()?),
-            TokenType::Symbol => match self.peek_second()?.value().as_str() {
-                "(" | "-" | "+" => Ok(true),
+            TokenType::Symbol => match self.peek()?.value().as_str() {
+                "(" | "-" | "~" => Ok(true),
                 _ => Ok(false),
             },
             TokenType::Identifier | TokenType::IntConst | TokenType::StringConst => Ok(true),

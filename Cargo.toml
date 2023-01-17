@@ -9,3 +9,4 @@ edition = "2021"
 anyhow = "1.0.66"
 clap = { version = "4.0.18", features = ["derive"] }
 tempfile = "3.3.0"
+walkdir = "2.3.2"

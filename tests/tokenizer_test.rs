@@ -61,7 +61,7 @@ fn test_diff(expected_file_path: &Path, src_file_path: &Path) {
                     _ => "",
                 };
 
-                if symbol == "" {
+                if symbol.is_empty() {
                     writeln!(actual, "<symbol> {} </symbol>", jack_tokenizer.symbol()).unwrap()
                 } else {
                     writeln!(actual, "<symbol> {} </symbol>", symbol).unwrap()

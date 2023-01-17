@@ -5,8 +5,9 @@ use anyhow::Result;
 use clap::Parser;
 use walkdir::{DirEntry, WalkDir};
 
-use jack_compiler::compilation::compilation_engine::{CompilationEngine, XmlCompilationEngine};
-use jack_compiler::tokenizer::jack_tokenizer::JackTokenizer;
+use crate::compilation::compilation_engine::CompilationEngine;
+use crate::compilation::compilation_engine::XmlCompilationEngine;
+use crate::tokenizer::jack_tokenizer::JackTokenizer;
 
 mod compilation;
 mod tokenizer;

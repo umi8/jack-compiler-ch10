@@ -1,10 +1,12 @@
-use std::path::PathBuf;
+use std::fs::File;
+use std::path::{Path, PathBuf};
 
 use anyhow::Result;
 use clap::Parser;
+use walkdir::{DirEntry, WalkDir};
 
-use crate::tokenizer::token_type::TokenType;
-use tokenizer::jack_tokenizer::JackTokenizer;
+use jack_compiler::compilation::compilation_engine::{CompilationEngine, XmlCompilationEngine};
+use jack_compiler::tokenizer::jack_tokenizer::JackTokenizer;
 
 mod compilation;
 mod tokenizer;
@@ -20,36 +22,46 @@ struct Args {
 
 fn main() -> Result<()> {
     let args = Args::parse();
-    let mut jack_tokenizer = JackTokenizer::new(args.path.as_path())?;
+    let files: Vec<DirEntry> = extract_files_from(args.path.as_path());
 
-    while jack_tokenizer.has_more_tokens()? {
-        jack_tokenizer.advance()?;
-        match jack_tokenizer.token_type()? {
-            TokenType::Keyword => {
-                println!(
-                    "<keyword> {} </keyword>",
-                    jack_tokenizer.key_word()?.to_string().to_lowercase()
-                )
-            }
-            TokenType::Symbol => {
-                println!("<symbol> {} </symbol>", jack_tokenizer.symbol())
-            }
-            TokenType::Identifier => {
-                println!("<identifier> {} </identifier>", jack_tokenizer.identifier())
-            }
-            TokenType::IntConst => {
-                println!(
-                    "<integerConstant> {} </integerConstant>",
-                    jack_tokenizer.int_val()?
-                )
-            }
-            TokenType::StringConst => {
-                println!(
-                    "<stringConstant> {} </stringConstant>",
-                    jack_tokenizer.string_val()
-                )
-            }
-        }
+    if files.is_empty() {
+        println!(
+            "The compilation target doesn't exist. Set a jack file or directory with jack files."
+        );
+        return Ok(());
     }
+
+    for file in files {
+        let mut output_file = File::create(create_output_file_name(file.path()))?;
+        let mut engine = XmlCompilationEngine::new(JackTokenizer::new(file.path())?);
+        engine.compile_class(&mut output_file)?;
+    }
+
     Ok(())
+}
+
+fn extract_files_from(path: &Path) -> Vec<DirEntry> {
+    WalkDir::new(path)
+        .into_iter()
+        .filter_map(|e| e.ok())
+        .filter(is_jack_file)
+        .collect()
+}
+
+fn is_jack_file(entry: &DirEntry) -> bool {
+    entry
+        .file_name()
+        .to_str()
+        .map(|s| s.ends_with(".jack"))
+        .unwrap_or(false)
+}
+
+fn create_output_file_name(path: &Path) -> String {
+    if path.is_file() && path.extension().unwrap() == "jack" {
+        return String::from(path.with_extension("xml").to_string_lossy());
+    }
+
+    let dir = path.to_string_lossy();
+    let file_name = path.file_name().unwrap().to_string_lossy();
+    format!("{}/{}.xml", dir, file_name)
 }

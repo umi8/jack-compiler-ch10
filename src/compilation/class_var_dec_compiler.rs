@@ -19,8 +19,7 @@ impl ClassVarDecCompiler {
         // <classVarDec>
         writer.write_start_tag("classVarDec", written)?;
         // static or field
-        writer
-            .write_key_word(tokenizer, vec![Static, Field], written)?;
+        writer.write_key_word(tokenizer, vec![Static, Field], written)?;
         // type
         TypeCompiler::compile(tokenizer, writer, written)?;
         // varName
@@ -58,7 +57,7 @@ mod tests {
   <symbol> ; </symbol>
 </classVarDec>
 "
-            .to_string();
+        .to_string();
 
         let mut src_file = tempfile::NamedTempFile::new().unwrap();
         writeln!(src_file, "static boolean test;").unwrap();

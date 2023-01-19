@@ -1,7 +1,7 @@
 use std::io::Write;
 
-use anyhow::Result;
 use crate::compilation::expression_list_compiler::ExpressionListCompiler;
+use anyhow::Result;
 
 use crate::compilation::xml_writer::XmlWriter;
 use crate::tokenizer::jack_tokenizer::JackTokenizer;
@@ -35,8 +35,8 @@ impl SubroutineCallCompiler {
 
 #[cfg(test)]
 mod tests {
-    use std::io::{Seek, SeekFrom, Write};
     use crate::compilation::subroutine_call_compiler::SubroutineCallCompiler;
+    use std::io::{Seek, SeekFrom, Write};
 
     use crate::compilation::xml_writer::XmlWriter;
     use crate::tokenizer::jack_tokenizer::JackTokenizer;
@@ -57,7 +57,7 @@ mod tests {
 </expressionList>
 <symbol> ) </symbol>
 "
-            .to_string();
+        .to_string();
 
         let mut src_file = tempfile::NamedTempFile::new().unwrap();
         writeln!(src_file, "Keyboard.readInt(\"HOW MANY NUMBERS? \")").unwrap();

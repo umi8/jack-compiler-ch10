@@ -20,8 +20,7 @@ impl WhileStatementCompiler {
         // <whileStatement>
         writer.write_start_tag("whileStatement", written)?;
         // while
-        writer
-            .write_key_word(tokenizer, vec![While], written)?;
+        writer.write_key_word(tokenizer, vec![While], written)?;
         // ’(’
         writer.write_symbol(tokenizer, written)?;
         // expression
@@ -42,8 +41,8 @@ impl WhileStatementCompiler {
 
 #[cfg(test)]
 mod tests {
-    use std::io::{Seek, SeekFrom, Write};
     use crate::compilation::while_statement_compiler::WhileStatementCompiler;
+    use std::io::{Seek, SeekFrom, Write};
 
     use crate::compilation::xml_writer::XmlWriter;
     use crate::tokenizer::jack_tokenizer::JackTokenizer;
@@ -114,7 +113,7 @@ mod tests {
   <symbol> } </symbol>
 </whileStatement>
 "
-            .to_string();
+        .to_string();
 
         let mut src_file = tempfile::NamedTempFile::new().unwrap();
         writeln!(src_file, "while (i < length) {{").unwrap();
@@ -122,7 +121,7 @@ mod tests {
             src_file,
             "let a[i] = Keyboard.readInt(\"ENTER THE NEXT NUMBER: \");"
         )
-            .unwrap();
+        .unwrap();
         writeln!(src_file, "let i = i + 1;").unwrap();
         writeln!(src_file, "}}").unwrap();
         src_file.seek(SeekFrom::Start(0)).unwrap();

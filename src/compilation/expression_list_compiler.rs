@@ -1,7 +1,7 @@
 use std::io::Write;
 
-use anyhow::Result;
 use crate::compilation::expression_compiler::ExpressionCompiler;
+use anyhow::Result;
 
 use crate::compilation::xml_writer::XmlWriter;
 use crate::tokenizer::jack_tokenizer::JackTokenizer;

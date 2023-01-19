@@ -23,17 +23,12 @@ impl SubroutineDecCompiler {
         // <subroutineDec>
         writer.write_start_tag("subroutineDec", written)?;
         // ’constructor’ | ’function’ | ’method’
-        writer.write_key_word(
-            tokenizer,
-            vec![Constructor, Function, Method],
-            written,
-        )?;
+        writer.write_key_word(tokenizer, vec![Constructor, Function, Method], written)?;
         // ’void’ | type
         if tokenizer.peek()?.token_type() == &Keyword
             && KeyWord::from(tokenizer.peek()?.value())? == Void
         {
-            writer
-                .write_key_word(tokenizer, vec![Void], written)?
+            writer.write_key_word(tokenizer, vec![Void], written)?
         } else {
             TypeCompiler::compile(tokenizer, writer, written)?
         }
@@ -84,7 +79,7 @@ mod tests {
   </subroutineBody>
 </subroutineDec>
 "
-            .to_string();
+        .to_string();
 
         let mut src_file = tempfile::NamedTempFile::new().unwrap();
         writeln!(src_file, "function void main() {{").unwrap();

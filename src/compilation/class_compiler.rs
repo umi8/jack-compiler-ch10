@@ -21,8 +21,7 @@ impl ClassCompiler {
         // <class>
         writer.write_start_tag("class", written)?;
         // ’class’
-        writer
-            .write_key_word(tokenizer, vec![Class], written)?;
+        writer.write_key_word(tokenizer, vec![Class], written)?;
         // className
         writer.write_identifier(tokenizer, written)?;
         // {
@@ -33,7 +32,9 @@ impl ClassCompiler {
                 break;
             }
             match KeyWord::from(tokenizer.peek()?.value())? {
-                KeyWord::Static | KeyWord::Field => ClassVarDecCompiler::compile(tokenizer, writer, written)?,
+                KeyWord::Static | KeyWord::Field => {
+                    ClassVarDecCompiler::compile(tokenizer, writer, written)?
+                }
                 _ => break,
             }
         }
@@ -43,7 +44,9 @@ impl ClassCompiler {
                 break;
             }
             match KeyWord::from(tokenizer.peek()?.value())? {
-                KeyWord::Constructor | KeyWord::Function | KeyWord::Method => SubroutineDecCompiler::compile(tokenizer, writer, written)?,
+                KeyWord::Constructor | KeyWord::Function | KeyWord::Method => {
+                    SubroutineDecCompiler::compile(tokenizer, writer, written)?
+                }
                 _ => break,
             }
         }
@@ -73,7 +76,7 @@ mod tests {
   <symbol> } </symbol>
 </class>
 "
-            .to_string();
+        .to_string();
 
         let mut src_file = tempfile::NamedTempFile::new().unwrap();
         writeln!(src_file, "class Main {{").unwrap();
@@ -114,7 +117,7 @@ mod tests {
   <symbol> } </symbol>
 </class>
 "
-            .to_string();
+        .to_string();
 
         let mut src_file = tempfile::NamedTempFile::new().unwrap();
         writeln!(src_file, "class Main {{").unwrap();
@@ -183,7 +186,7 @@ mod tests {
   <symbol> } </symbol>
 </class>
 "
-            .to_string();
+        .to_string();
 
         let mut src_file = tempfile::NamedTempFile::new().unwrap();
         writeln!(src_file, "class Main {{").unwrap();

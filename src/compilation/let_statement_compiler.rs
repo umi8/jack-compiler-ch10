@@ -19,8 +19,7 @@ impl LetStatementCompiler {
         // <letStatement>
         writer.write_start_tag("letStatement", written)?;
         // let
-        writer
-            .write_key_word(tokenizer, vec![Let], written)?;
+        writer.write_key_word(tokenizer, vec![Let], written)?;
         // varName
         writer.write_identifier(tokenizer, written)?;
         // (’[’ expression ’]’)?
@@ -78,14 +77,14 @@ mod tests {
   <symbol> ; </symbol>
 </letStatement>
 "
-            .to_string();
+        .to_string();
 
         let mut src_file = tempfile::NamedTempFile::new().unwrap();
         writeln!(
             src_file,
             "let length = Keyboard.readInt(\"HOW MANY NUMBERS? \");"
         )
-            .unwrap();
+        .unwrap();
         src_file.seek(SeekFrom::Start(0)).unwrap();
         let path = src_file.path();
         let mut output = Vec::<u8>::new();

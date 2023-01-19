@@ -20,17 +20,14 @@ impl VarDecCompiler {
         // <varDec>
         writer.write_start_tag("varDec", written)?;
         // ’var’
-        writer
-            .write_key_word(tokenizer, vec![Var], written)?;
+        writer.write_key_word(tokenizer, vec![Var], written)?;
         // type
         TypeCompiler::compile(tokenizer, writer, written)?;
         // varName
         writer.write_identifier(tokenizer, written)?;
         // (’,’ varName)*
         loop {
-            if tokenizer.peek()?.token_type() == &Symbol
-                && tokenizer.peek()?.value() == ","
-            {
+            if tokenizer.peek()?.token_type() == &Symbol && tokenizer.peek()?.value() == "," {
                 // ','
                 writer.write_symbol(tokenizer, written)?;
                 // varName
@@ -69,7 +66,7 @@ mod tests {
   <symbol> ; </symbol>
 </varDec>
 "
-            .to_string();
+        .to_string();
 
         let mut src_file = tempfile::NamedTempFile::new().unwrap();
         writeln!(src_file, "var int i, j, sum;").unwrap();

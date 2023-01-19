@@ -1,7 +1,7 @@
 use std::io::Write;
 
-use anyhow::Result;
 use crate::compilation::subroutine_call_compiler::SubroutineCallCompiler;
+use anyhow::Result;
 
 use crate::compilation::xml_writer::XmlWriter;
 use crate::tokenizer::jack_tokenizer::JackTokenizer;
@@ -19,8 +19,7 @@ impl DoStatementCompiler {
         // <doStatement>
         writer.write_start_tag("doStatement", written)?;
         // do
-        writer
-            .write_key_word(tokenizer, vec![Do], written)?;
+        writer.write_key_word(tokenizer, vec![Do], written)?;
         // subroutineCall
         SubroutineCallCompiler::compile(tokenizer, writer, written)?;
         // ’;’
@@ -33,8 +32,8 @@ impl DoStatementCompiler {
 
 #[cfg(test)]
 mod tests {
-    use std::io::{Seek, SeekFrom, Write};
     use crate::compilation::do_statement_compiler::DoStatementCompiler;
+    use std::io::{Seek, SeekFrom, Write};
 
     use crate::compilation::xml_writer::XmlWriter;
     use crate::tokenizer::jack_tokenizer::JackTokenizer;
@@ -59,7 +58,7 @@ mod tests {
   <symbol> ; </symbol>
 </doStatement>
 "
-            .to_string();
+        .to_string();
 
         let mut src_file = tempfile::NamedTempFile::new().unwrap();
         writeln!(src_file, "do Output.printString(\"THE AVERAGE IS: \");").unwrap();

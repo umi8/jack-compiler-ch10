@@ -75,7 +75,7 @@ mod tests {
   <symbol> } </symbol>
 </subroutineBody>
 "
-            .to_string();
+        .to_string();
 
         let mut src_file = tempfile::NamedTempFile::new().unwrap();
         writeln!(src_file, "{{").unwrap();

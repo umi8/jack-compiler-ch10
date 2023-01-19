@@ -19,8 +19,7 @@ impl ReturnStatementCompiler {
         // <returnStatement>
         writer.write_start_tag("returnStatement", written)?;
         // return
-        writer
-            .write_key_word(tokenizer, vec![Return], written)?;
+        writer.write_key_word(tokenizer, vec![Return], written)?;
         // expression?
         if tokenizer.peek()?.value() != ";" {
             ExpressionCompiler::compile(tokenizer, writer, written)?;
@@ -54,7 +53,7 @@ mod tests {
   <symbol> ; </symbol>
 </returnStatement>
 "
-            .to_string();
+        .to_string();
 
         let mut src_file = tempfile::NamedTempFile::new().unwrap();
         writeln!(src_file, "return x;").unwrap();

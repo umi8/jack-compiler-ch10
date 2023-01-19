@@ -1,8 +1,8 @@
 use std::io::Write;
 
-use anyhow::Result;
 use crate::compilation::expression_compiler::ExpressionCompiler;
 use crate::compilation::statements_compiler::StatementsCompiler;
+use anyhow::Result;
 
 use crate::compilation::xml_writer::XmlWriter;
 use crate::tokenizer::jack_tokenizer::JackTokenizer;
@@ -22,8 +22,7 @@ impl IfStatementCompiler {
         // <ifStatement>
         writer.write_start_tag("ifStatement", written)?;
         // if
-        writer
-            .write_key_word(tokenizer, vec![If], written)?;
+        writer.write_key_word(tokenizer, vec![If], written)?;
         // ’(’
         writer.write_symbol(tokenizer, written)?;
         // expression
@@ -41,8 +40,7 @@ impl IfStatementCompiler {
             && KeyWord::from(tokenizer.peek()?.value())? == KeyWord::Else
         {
             // else
-            writer
-                .write_key_word(tokenizer, vec![Else], written)?;
+            writer.write_key_word(tokenizer, vec![Else], written)?;
             // ’{’
             writer.write_symbol(tokenizer, written)?;
             // statements

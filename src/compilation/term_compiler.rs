@@ -24,11 +24,7 @@ impl TermCompiler {
         match tokenizer.peek()?.token_type() {
             TokenType::Keyword => {
                 if tokenizer.peek()?.is_keyword_constant()? {
-                    writer.write_key_word(
-                        tokenizer,
-                        vec![True, False, Null, This],
-                        written,
-                    )?;
+                    writer.write_key_word(tokenizer, vec![True, False, Null, This], written)?;
                 }
             }
             TokenType::Symbol => match tokenizer.peek()?.value().as_str() {
@@ -64,12 +60,8 @@ impl TermCompiler {
                     _ => writer.write_identifier(tokenizer, written)?,
                 }
             }
-            TokenType::IntConst =>
-                writer
-                    .write_integer_constant(tokenizer, written)?,
-            TokenType::StringConst =>
-                writer
-                    .write_string_constant(tokenizer, written)?,
+            TokenType::IntConst => writer.write_integer_constant(tokenizer, written)?,
+            TokenType::StringConst => writer.write_string_constant(tokenizer, written)?,
         }
 
         // </term>
@@ -80,8 +72,8 @@ impl TermCompiler {
 
 #[cfg(test)]
 mod tests {
-    use std::io::{Seek, SeekFrom, Write};
     use crate::compilation::term_compiler::TermCompiler;
+    use std::io::{Seek, SeekFrom, Write};
 
     use crate::compilation::xml_writer::XmlWriter;
     use crate::tokenizer::jack_tokenizer::JackTokenizer;
@@ -104,7 +96,7 @@ mod tests {
   <symbol> ) </symbol>
 </term>
 "
-            .to_string();
+        .to_string();
 
         let mut src_file = tempfile::NamedTempFile::new().unwrap();
         writeln!(src_file, "Keyboard.readInt(\"HOW MANY NUMBERS? \")").unwrap();

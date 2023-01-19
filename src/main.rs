@@ -35,7 +35,7 @@ fn main() -> Result<()> {
     for file in files {
         let mut output_file = File::create(create_output_file_name(file.path()))?;
         let mut engine = XmlCompilationEngine::new(JackTokenizer::new(file.path())?);
-        engine.compile_class(&mut output_file)?;
+        engine.compile(&mut output_file)?;
     }
 
     Ok(())

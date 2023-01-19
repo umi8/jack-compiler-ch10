@@ -38,7 +38,7 @@ fn test_diff(expected_file_path: &Path, src_file_path: &Path) {
     let jack_tokenizer = JackTokenizer::new(src_file_path).unwrap();
     let mut compilation_engine = XmlCompilationEngine::new(jack_tokenizer);
     let mut output = Vec::<u8>::new();
-    let result = compilation_engine.compile_class(&mut output);
+    let result = compilation_engine.compile(&mut output);
     let actual = String::from_utf8(output).unwrap();
     assert!(result.is_ok());
     assert_eq!(expected, actual)

@@ -1,7 +1,9 @@
+use std::fmt::Debug;
+
+use anyhow::Result;
+
 use crate::tokenizer::key_word::KeyWord;
 use crate::tokenizer::token_type::TokenType;
-use anyhow::Result;
-use std::fmt::Debug;
 
 #[derive(Debug)]
 pub struct Token {
